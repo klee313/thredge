@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: thredge-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/thredge}
+    username: ${SPRING_DATASOURCE_USERNAME:thredge}
+    password: ${SPRING_DATASOURCE_PASSWORD:thredge}
+  jpa:
+    hibernate:
+      ddl-auto: none
+  session:
+    store-type: jdbc
+
+server:
+  port: ${SERVER_PORT:28080}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5174}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

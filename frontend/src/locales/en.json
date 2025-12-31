@@ -1,0 +1,29 @@
+{
+  "appName": "thredge",
+  "nav": {
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "Local dev status",
+    "backendHealth": "Backend health",
+    "loading": "Loading…",
+    "error": "Failed to load",
+    "ok": "OK"
+  },
+  "settings": {
+    "title": "Settings",
+    "uiLanguage": "UI language",
+    "nativeLanguage": "Native language",
+    "targetLanguage": "Learning language",
+    "correctionEnabled": "Corrections enabled",
+    "coachTone": "Coach tone",
+    "save": "Save"
+  },
+  "coachTone": {
+    "warm": "Warm",
+    "neutral": "Neutral",
+    "strict": "Strict"
+  }
+}
+

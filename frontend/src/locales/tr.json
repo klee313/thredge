@@ -1,0 +1,29 @@
+{
+  "appName": "thredge",
+  "nav": {
+    "home": "Ana Sayfa",
+    "settings": "Ayarlar"
+  },
+  "home": {
+    "title": "Yerel geliştirme durumu",
+    "backendHealth": "Backend durumu",
+    "loading": "Yükleniyor…",
+    "error": "Yüklenemedi",
+    "ok": "Tamam"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "uiLanguage": "Arayüz dili",
+    "nativeLanguage": "Ana dil",
+    "targetLanguage": "Öğrenme dili",
+    "correctionEnabled": "Düzeltmeler açık",
+    "coachTone": "Koç tonu",
+    "save": "Kaydet"
+  },
+  "coachTone": {
+    "warm": "Sıcak",
+    "neutral": "Nötr",
+    "strict": "Sert"
+  }
+}
+

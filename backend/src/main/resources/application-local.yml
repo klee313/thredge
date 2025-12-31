@@ -1,0 +1,5 @@
+spring:
+  session:
+    jdbc:
+      initialize-schema: always
+

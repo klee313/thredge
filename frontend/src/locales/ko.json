@@ -1,0 +1,29 @@
+{
+  "appName": "thredge",
+  "nav": {
+    "home": "홈",
+    "settings": "설정"
+  },
+  "home": {
+    "title": "로컬 개발 상태",
+    "backendHealth": "백엔드 상태",
+    "loading": "불러오는 중…",
+    "error": "불러오기에 실패했어요",
+    "ok": "정상"
+  },
+  "settings": {
+    "title": "설정",
+    "uiLanguage": "UI 언어",
+    "nativeLanguage": "모국어(설명 언어)",
+    "targetLanguage": "학습 언어",
+    "correctionEnabled": "교정(지적) 사용",
+    "coachTone": "코치 톤",
+    "save": "저장"
+  },
+  "coachTone": {
+    "warm": "따뜻함",
+    "neutral": "담백함",
+    "strict": "엄격함"
+  }
+}
+

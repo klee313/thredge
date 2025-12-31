@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# IntelliJ / JetBrains
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Env
+.env
+
+# Local backups (keep scripts in repo, not the dumps)
+backups/
+infra/db/backups/*.sql
+infra/db/backups/*.dump
+infra/db/backups/*.gz
+
+# Local postgres data (bind mount)
+data/postgres/*
+!data/postgres/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Backend
+backend/build/
+backend/out/

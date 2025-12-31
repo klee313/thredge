@@ -1,0 +1,101 @@
+word,categories,cefr,meaning_ko,meaning_en,meaning_tr,example
+merhaba,Communication/Greeting,A1,안녕,hello,merhaba,"Merhaba, Tom."
+evet,Communication/Answer,A1,네,yes,evet,"Evet, lütfen."
+hayır,Communication/Answer,A1,아니요,no,hayır,"Hayır, teşekkürler."
+lütfen,Communication/Polite,A1,부탁,please,lütfen,Lütfen buraya otur.
+teşekkürler,Communication/Polite,A1,감사,thanks,teşekkürler,Yardımın için teşekkürler.
+üzgünüm,Communication/Polite,A1,미안,sorry,üzgünüm,"Geç kaldım, üzgünüm."
+isim,People/Identity,A1,이름,name,isim,Benim adım Mina.
+arkadaş,People/Relationship,A1,친구,friend,arkadaş,O benim arkadaşım.
+aile,People/Family,A1,가족,family,aile,Ailem küçük.
+anne,People/Family,A1,어머니,mother,anne,Annem nazik.
+baba,People/Family,A1,아버지,father,baba,Babam uzun.
+kız kardeş,People/Family,A1,여동생,sister,kız kardeş,Bir kız kardeşim var.
+erkek kardeş,People/Family,A1,남동생,brother,erkek kardeş,Erkek kardeşim genç.
+bebek,People/Family,A1,아기,baby,bebek,Bebek uyuyor.
+çocuk,People/Family,A1,아이,child,çocuk,Çocuk mutlu.
+adam,People/Person,A1,남자,man,adam,Adam doktordur.
+kadın,People/Person,A1,여자,woman,kadın,Kadın öğretmendir.
+oğlan,People/Person,A1,소년,boy,oğlan,Oğlan hızlı koşar.
+kız,People/Person,A1,소녀,girl,kız,Kız iyi şarkı söyler.
+vücut,Body/General,A1,몸,body,vücut,Vücut dinlenmeye ihtiyaç duyar.
+baş,Body/Parts,A1,머리,head,baş,Başım ağrıyor.
+göz,Body/Parts,A1,눈,eye,göz,Onun gözleri büyük.
+kulak,Body/Parts,A1,귀,ear,kulak,Kulağım soğuk.
+burun,Body/Parts,A1,코,nose,burun,Burnu küçük.
+ağız,Body/Parts,A1,입,mouth,ağız,Ağzını aç.
+el,Body/Parts,A1,손,hand,el,Ellerini yıka.
+bacak,Body/Parts,A1,다리,leg,bacak,Bacağım yorgun.
+ayak,Body/Parts,A1,발,foot,ayak,Ayağım ıslak.
+kalp,Body/Parts,A1,심장,heart,kalp,Kalbi sağlıklı.
+ev,Places/Home,A1,집,home,ev,Şimdi eve gidiyorum.
+ev,Places/Home,A1,주택,house,ev,Ev beyaz.
+oda,Places/Home/Rooms,A1,방,room,oda,Odam temiz.
+kapı,Places/Home/Objects,A1,문,door,kapı,Kapıyı kapat.
+pencere,Places/Home/Objects,A1,창문,window,pencere,Pencere açık.
+yatak,Places/Home/Furniture,A1,침대,bed,yatak,Yatak yumuşak.
+sandalye,Places/Home/Furniture,A1,의자,chair,sandalye,Sandalyeye otur.
+masa,Places/Home/Furniture,A1,테이블,table,masa,Masa büyük.
+okul,Places/School,A1,학교,school,okul,Okul yakın.
+öğretmen,People/School,A1,선생님,teacher,öğretmen,Öğretmen nazik.
+öğrenci,People/School,A1,학생,student,öğrenci,Öğrenci okur.
+kitap,Objects/School,A1,책,book,kitap,Bir kitabım var.
+kalem,Objects/School,A1,펜,pen,kalem,Bu kalem yeni.
+çanta,Objects/School|Objects/Personal,A1,가방,bag,çanta,Çantam ağır.
+telefon,Objects/Personal,A1,전화기,phone,telefon,Telefonum burada.
+bilgisayar,Objects/Personal|Objects/Technology,A1,컴퓨터,computer,bilgisayar,Bilgisayar açık.
+yemek,Food/General,A1,음식,food,yemek,Yemek sıcak.
+su,Food/Drink|Nature/Water,A1,물,water,su,Su içiyorum.
+süt,Food/Drink,A1,우유,milk,süt,Sütü seviyorum.
+ekmek,Food/Staple,A1,빵,bread,ekmek,Ekmek yeriz.
+pirinç,Food/Staple,A1,쌀,rice,pirinç,Pirinç masada.
+yumurta,Food/Protein,A1,계란,egg,yumurta,Bir yumurta pişiriyorum.
+elma,Food/Fruit,A1,사과,apple,elma,Elma kırmızı.
+muz,Food/Fruit,A1,바나나,banana,muz,Muz sarı.
+portakal,Food/Fruit,A1,오렌지,orange,portakal,Portakalı soyuyorum.
+şeker,Food/Ingredient,A1,설탕,sugar,şeker,Biraz şeker ekle.
+kahve,Food/Drink,A1,커피,coffee,kahve,Kahve içiyorum.
+çay,Food/Drink,A1,차,tea,çay,Çay içiyoruz.
+tuz,Food/Ingredient,A1,소금,salt,tuz,Biraz tuz kullan.
+et,Food/Protein,A1,고기,meat,et,Et pişti.
+balık,Food/Protein|Animals/Sea,A1,생선,fish,balık,Balık taze.
+kedi,Animals/Pet,A1,고양이,cat,kedi,Kedi uyuyor.
+köpek,Animals/Pet,A1,개,dog,köpek,Köpek dost canlısı.
+kuş,Animals/Bird,A1,새,bird,kuş,Kuş uçuyor.
+inek,Animals/Farm,A1,소,cow,inek,İnek ot yer.
+at,Animals/Farm,A1,말,horse,at,At hızlı koşar.
+ağaç,Nature/Plants,A1,나무,tree,ağaç,Ağaç uzun.
+çiçek,Nature/Plants,A1,꽃,flower,çiçek,Çiçek güzel.
+ot,Nature/Plants,A1,풀,grass,ot,Ot yeşil.
+güneş,Nature/Sky,A1,태양,sun,güneş,Güneş parlak.
+ay,Nature/Sky,A1,달,moon,ay,Ay dolu.
+yıldız,Nature/Sky,A1,별,star,yıldız,Bir yıldız görüyorum.
+gökyüzü,Nature/Sky,A1,하늘,sky,gökyüzü,Gökyüzü mavi.
+yağmur,Weather/Rain,A1,비,rain,yağmur,Yağmur soğuk.
+kar,Weather/Snow,A1,눈,snow,kar,Kar gece yağar.
+rüzgar,Weather/Wind,A1,바람,wind,rüzgar,Rüzgar güçlü.
+gün,Time/Day,A1,하루,day,gün,Güzel bir gün.
+gece,Time/Day,A1,밤,night,gece,İyi geceler.
+sabah,Time/Day,A1,아침,morning,sabah,Sabah koşarım.
+akşam,Time/Day,A1,저녁,evening,akşam,Akşam yemek yeriz.
+bugün,Time/Day,A1,오늘,today,bugün,Bugün sıcak.
+yarın,Time/Day,A1,내일,tomorrow,yarın,Yarın çalışırım.
+dün,Time/Day,A1,어제,yesterday,dün,Dün yağmur yağdı.
+Pazartesi,Time/Week,A1,월요일,Monday,Pazartesi,Pazartesi yoğun.
+Ocak,Time/Month,A1,1월,January,Ocak,Ocak soğuk.
+zaman,Time/General,A1,시간,time,zaman,Saat kaç?
+yıl,Time/Year,A1,년,year,yıl,Bu yıl iyi.
+kırmızı,Colors/Basic,A1,빨간색,red,kırmızı,Araba kırmızı.
+mavi,Colors/Basic,A1,파란색,blue,mavi,Çanta mavi.
+yeşil,Colors/Basic,A1,초록색,green,yeşil,Ağaç yeşil.
+siyah,Colors/Basic,A1,검은색,black,siyah,Kedi siyah.
+beyaz,Colors/Basic,A1,하얀색,white,beyaz,Gömlek beyaz.
+bir,Numbers/Basic,A1,하나,one,bir,Bir kalemim var.
+iki,Numbers/Basic,A1,둘,two,iki,İki bardağımız var.
+üç,Numbers/Basic,A1,셋,three,üç,Üç kuş uçuyor.
+dört,Numbers/Basic,A1,넷,four,dört,Dört sandalye burada.
+beş,Numbers/Basic,A1,다섯,five,beş,Beş sayfa okurum.
+gitmek,Actions/Movement,A1,가다,go,gitmek,Okula giderim.
+gelmek,Actions/Movement,A1,오다,come,gelmek,Buraya gel lütfen.
+yemek,Actions/Food,A1,먹다,eat,yemek,Pirinç yeriz.
+içmek,Actions/Food,A1,마시다,drink,içmek,Çay içerim.

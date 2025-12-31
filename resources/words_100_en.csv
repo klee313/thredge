@@ -1,0 +1,101 @@
+word,categories,cefr,meaning_ko,meaning_en,meaning_tr,example
+hello,Communication/Greeting,A1,안녕,a greeting,merhaba,"Hello, Tom."
+yes,Communication/Answer,A1,네,an affirmative answer,evet,"Yes, please."
+no,Communication/Answer,A1,아니요,a negative answer,hayır,"No, thank you."
+please,Communication/Polite,A1,부탁,a polite word for requests,lütfen,Please sit here.
+thanks,Communication/Polite,A1,감사,words of gratitude,teşekkürler,Thanks for your help.
+sorry,Communication/Polite,A1,미안,an apology,üzgünüm,"Sorry, I am late."
+name,People/Identity,A1,이름,a word that identifies a person,isim,My name is Mina.
+friend,People/Relationship,A1,친구,a person you like,arkadaş,She is my friend.
+family,People/Family,A1,가족,parents and children,aile,My family is small.
+mother,People/Family,A1,어머니,a female parent,anne,My mother is kind.
+father,People/Family,A1,아버지,a male parent,baba,My father is tall.
+sister,People/Family,A1,여동생,a female sibling,kız kardeş,I have one sister.
+brother,People/Family,A1,남동생,a male sibling,erkek kardeş,My brother is young.
+baby,People/Family,A1,아기,a very young child,bebek,The baby is asleep.
+child,People/Family,A1,아이,a young person,çocuk,The child is happy.
+man,People/Person,A1,남자,an adult male,adam,The man is a doctor.
+woman,People/Person,A1,여자,an adult female,kadın,The woman is a teacher.
+boy,People/Person,A1,소년,a young male,oğlan,The boy runs fast.
+girl,People/Person,A1,소녀,a young female,kız,The girl sings well.
+body,Body/General,A1,몸,the physical part of a person,vücut,The body needs rest.
+head,Body/Parts,A1,머리,the top part of the body,baş,My head hurts.
+eye,Body/Parts,A1,눈,the organ for seeing,göz,Her eyes are big.
+ear,Body/Parts,A1,귀,the organ for hearing,kulak,My ear is cold.
+nose,Body/Parts,A1,코,the part used for smelling,burun,His nose is small.
+mouth,Body/Parts,A1,입,the part used for eating and speaking,ağız,Open your mouth.
+hand,Body/Parts,A1,손,the part at the end of the arm,el,Wash your hands.
+leg,Body/Parts,A1,다리,the limb used for walking,bacak,My leg is tired.
+foot,Body/Parts,A1,발,the part at the end of the leg,ayak,My foot is wet.
+heart,Body/Parts,A1,심장,the organ that pumps blood,kalp,Her heart is healthy.
+home,Places/Home,A1,집,the place you live,ev,I go home now.
+house,Places/Home,A1,주택,a building for living,ev,The house is white.
+room,Places/Home/Rooms,A1,방,a space in a house,oda,My room is clean.
+door,Places/Home/Objects,A1,문,a movable barrier in a wall,kapı,Close the door.
+window,Places/Home/Objects,A1,창문,an opening with glass,pencere,The window is open.
+bed,Places/Home/Furniture,A1,침대,a piece of furniture for sleeping,yatak,The bed is soft.
+chair,Places/Home/Furniture,A1,의자,a seat with legs,sandalye,Sit on the chair.
+table,Places/Home/Furniture,A1,테이블,a flat surface for eating or working,masa,The table is big.
+school,Places/School,A1,학교,a place to learn,okul,The school is near.
+teacher,People/School,A1,선생님,a person who teaches,öğretmen,The teacher is kind.
+student,People/School,A1,학생,a person who learns,öğrenci,The student reads.
+book,Objects/School,A1,책,a set of written pages,kitap,I have a book.
+pen,Objects/School,A1,펜,a tool for writing,kalem,This pen is new.
+bag,Objects/School|Objects/Personal,A1,가방,a container you carry,çanta,My bag is heavy.
+phone,Objects/Personal,A1,전화기,a device for calling,telefon,My phone is here.
+computer,Objects/Personal|Objects/Technology,A1,컴퓨터,an electronic device for work,bilgisayar,The computer is on.
+food,Food/General,A1,음식,things you eat,yemek,The food is hot.
+water,Food/Drink|Nature/Water,A1,물,a clear liquid you drink,su,I drink water.
+milk,Food/Drink,A1,우유,a white drink from cows,süt,I like milk.
+bread,Food/Staple,A1,빵,a baked food made from flour,ekmek,We eat bread.
+rice,Food/Staple,A1,쌀,a grain used as food,pirinç,Rice is on the table.
+egg,Food/Protein,A1,계란,food from a chicken,yumurta,I cook an egg.
+apple,Food/Fruit,A1,사과,a sweet red or green fruit,elma,The apple is red.
+banana,Food/Fruit,A1,바나나,a long yellow fruit,muz,The banana is yellow.
+orange,Food/Fruit,A1,오렌지,a round orange fruit,portakal,I peel an orange.
+sugar,Food/Ingredient,A1,설탕,a sweet white powder,şeker,Add some sugar.
+coffee,Food/Drink,A1,커피,a hot drink made from beans,kahve,I drink coffee.
+tea,Food/Drink,A1,차,a hot drink made from leaves,çay,We drink tea.
+salt,Food/Ingredient,A1,소금,a white seasoning,tuz,Use a little salt.
+meat,Food/Protein,A1,고기,animal flesh used as food,et,The meat is cooked.
+fish,Food/Protein|Animals/Sea,A1,생선,an animal that lives in water,balık,The fish is fresh.
+cat,Animals/Pet,A1,고양이,a small pet animal,kedi,The cat sleeps.
+dog,Animals/Pet,A1,개,a common pet animal,köpek,The dog is friendly.
+bird,Animals/Bird,A1,새,an animal with wings,kuş,A bird is flying.
+cow,Animals/Farm,A1,소,a large farm animal,inek,The cow eats grass.
+horse,Animals/Farm,A1,말,a large animal you can ride,at,The horse runs fast.
+tree,Nature/Plants,A1,나무,a tall plant with a trunk,ağaç,The tree is tall.
+flower,Nature/Plants,A1,꽃,the colorful part of a plant,çiçek,The flower is pretty.
+grass,Nature/Plants,A1,풀,short green plants on the ground,ot,The grass is green.
+sun,Nature/Sky,A1,태양,the star that gives light,güneş,The sun is bright.
+moon,Nature/Sky,A1,달,the object seen at night,ay,The moon is full.
+star,Nature/Sky,A1,별,a bright object in the sky,yıldız,I see a star.
+sky,Nature/Sky,A1,하늘,the space above the earth,gökyüzü,The sky is blue.
+rain,Weather/Rain,A1,비,water that falls from clouds,yağmur,The rain is cold.
+snow,Weather/Snow,A1,눈,white flakes that fall in winter,kar,Snow falls at night.
+wind,Weather/Wind,A1,바람,moving air,rüzgar,The wind is strong.
+day,Time/Day,A1,하루,a period of 24 hours,gün,It is a sunny day.
+night,Time/Day,A1,밤,the time when it is dark,gece,"Good night, Mom."
+morning,Time/Day,A1,아침,the early part of the day,sabah,I run in the morning.
+evening,Time/Day,A1,저녁,the late part of the day,akşam,We eat in the evening.
+today,Time/Day,A1,오늘,this day,bugün,Today is warm.
+tomorrow,Time/Day,A1,내일,the day after today,yarın,I work tomorrow.
+yesterday,Time/Day,A1,어제,the day before today,dün,Yesterday was rainy.
+Monday,Time/Week,A1,월요일,the first day of the work week,Pazartesi,Monday is busy.
+January,Time/Month,A1,1월,the first month of the year,Ocak,January is cold.
+time,Time/General,A1,시간,the measure of moments,zaman,What time is it?
+year,Time/Year,A1,년,twelve months,yıl,This year is good.
+red,Colors/Basic,A1,빨간색,the color of blood,kırmızı,The car is red.
+blue,Colors/Basic,A1,파란색,the color of the sky,mavi,The bag is blue.
+green,Colors/Basic,A1,초록색,the color of grass,yeşil,The tree is green.
+black,Colors/Basic,A1,검은색,the darkest color,siyah,The cat is black.
+white,Colors/Basic,A1,하얀색,the lightest color,beyaz,The shirt is white.
+one,Numbers/Basic,A1,하나,the number 1,bir,I have one pen.
+two,Numbers/Basic,A1,둘,the number 2,iki,We have two cups.
+three,Numbers/Basic,A1,셋,the number 3,üç,Three birds fly.
+four,Numbers/Basic,A1,넷,the number 4,dört,Four chairs are here.
+five,Numbers/Basic,A1,다섯,the number 5,beş,I read five pages.
+go,Actions/Movement,A1,가다,to move to another place,gitmek,I go to school.
+come,Actions/Movement,A1,오다,to move toward here,gelmek,Please come here.
+eat,Actions/Food,A1,먹다,to take food into the body,yemek,We eat rice.
+drink,Actions/Food,A1,마시다,to take liquid into the body,içmek,I drink tea.
