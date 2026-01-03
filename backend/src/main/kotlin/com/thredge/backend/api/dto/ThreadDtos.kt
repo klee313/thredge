@@ -1,5 +1,6 @@
 package com.thredge.backend.api.dto
 
+import com.thredge.backend.support.ValidationMessages
 import com.thredge.backend.support.validation.NotBlankIfPresent
 import jakarta.validation.constraints.NotBlank
 import java.time.Instant
@@ -24,15 +25,15 @@ data class ThreadDetail(
 )
 
 data class ThreadCreateRequest(
-    @field:NotBlank(message = "Body is required.")
+    @field:NotBlank(message = ValidationMessages.BODY_REQUIRED)
     val body: String = "",
     val categoryNames: List<String> = emptyList(),
 )
 
 data class ThreadUpdateRequest(
-    @field:NotBlankIfPresent(message = "Title is required.")
+    @field:NotBlankIfPresent(message = ValidationMessages.TITLE_REQUIRED)
     val title: String? = null,
-    @field:NotBlankIfPresent(message = "Body is required.")
+    @field:NotBlankIfPresent(message = ValidationMessages.BODY_REQUIRED)
     val body: String? = null,
     val categoryNames: List<String>? = null,
 )

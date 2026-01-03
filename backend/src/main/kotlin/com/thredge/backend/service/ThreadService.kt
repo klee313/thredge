@@ -74,6 +74,7 @@ class ThreadService(
         return buildThreadDetail(thread)
     }
 
+    @Transactional
     fun updateThread(ownerUsername: String, id: String, request: ThreadUpdateRequest): ThreadSummary {
         val thread = findThread(id, ownerUsername)
         val newBody = request.body?.trim()
@@ -91,12 +92,14 @@ class ThreadService(
         return threadMapper.toThreadSummary(saved)
     }
 
+    @Transactional
     fun hideThread(ownerUsername: String, id: String) {
         val thread = findThread(id, ownerUsername)
         thread.isHidden = true
         threadRepository.save(thread)
     }
 
+    @Transactional
     fun restoreThread(ownerUsername: String, id: String): ThreadSummary {
         val thread = findThread(id, ownerUsername, includeHidden = true)
         thread.isHidden = false
@@ -105,6 +108,7 @@ class ThreadService(
         return threadMapper.toThreadSummary(saved)
     }
 
+    @Transactional
     fun pinThread(ownerUsername: String, id: String): ThreadSummary {
         val thread = findThread(id, ownerUsername)
         thread.isPinned = true
@@ -113,6 +117,7 @@ class ThreadService(
         return threadMapper.toThreadSummary(saved)
     }
 
+    @Transactional
     fun unpinThread(ownerUsername: String, id: String): ThreadSummary {
         val thread = findThread(id, ownerUsername)
         thread.isPinned = false

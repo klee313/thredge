@@ -1,12 +1,13 @@
 package com.thredge.backend.api.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.thredge.backend.support.ValidationMessages
 import com.thredge.backend.support.validation.NotBlankIfPresent
 import jakarta.validation.constraints.NotBlank
 import java.time.Instant
 
 data class EntryUpdateRequest(
-    @field:NotBlankIfPresent(message = "Body is required.")
+    @field:NotBlankIfPresent(message = ValidationMessages.BODY_REQUIRED)
     val body: String? = null,
 )
 
@@ -21,7 +22,7 @@ data class EntryDetail(
 )
 
 data class EntryRequest(
-    @field:NotBlank(message = "Body is required.")
+    @field:NotBlank(message = ValidationMessages.BODY_REQUIRED)
     val body: String = "",
     val parentEntryId: String? = null,
 )

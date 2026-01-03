@@ -5,6 +5,7 @@ import com.thredge.backend.api.dto.EntryUpdateRequest
 import com.thredge.backend.service.EntryService
 import com.thredge.backend.support.AuthSupport
 import jakarta.validation.Valid
+import com.thredge.backend.support.ValidationMessages
 import jakarta.validation.constraints.NotBlank
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
@@ -32,7 +33,7 @@ class EntryController(
 
     @GetMapping("/hidden/search")
     fun searchHiddenEntries(
-        @RequestParam @NotBlank(message = "Query is required.") query: String,
+        @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
         authentication: Authentication?,
     ): List<EntryDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)

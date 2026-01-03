@@ -1,11 +1,12 @@
 package com.thredge.backend.api.dto
 
+import com.thredge.backend.support.ValidationMessages
 import jakarta.validation.constraints.NotBlank
 
 data class LoginRequest(
-    @field:NotBlank(message = "Username is required.")
+    @field:NotBlank(message = ValidationMessages.USERNAME_REQUIRED)
     val username: String = "",
-    @field:NotBlank(message = "Password is required.")
+    @field:NotBlank(message = ValidationMessages.PASSWORD_REQUIRED)
     val password: String = "",
 )
 
