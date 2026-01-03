@@ -1,5 +1,7 @@
 package com.thredge.backend.api
 
+import com.thredge.backend.api.dto.EntryResponse
+import com.thredge.backend.api.dto.EntryUpdateRequest
 import com.thredge.backend.domain.entity.EntryEntity
 import com.thredge.backend.domain.repository.EntryRepository
 import com.thredge.backend.domain.repository.ThreadRepository
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.web.server.ResponseStatusException
 
@@ -23,25 +24,14 @@ import org.springframework.web.server.ResponseStatusException
 class EntryController(
     private val entryRepository: EntryRepository,
     private val threadRepository: ThreadRepository,
+    private val authSupport: AuthSupport,
 ) {
-    data class EntryUpdateRequest(
-        val body: String? = null,
-    )
-
-    data class EntryDetail(
-        val id: String,
-        val body: String,
-        val parentEntryId: String?,
-        val createdAt: Instant,
-        val threadId: String?,
-    )
-
     @GetMapping("/hidden")
-    fun listHidden(authentication: Authentication?): List<EntryDetail> {
-        val ownerUsername = requireUsername(authentication)
+    fun listHidden(authentication: Authentication?): List<EntryResponse> {
+        val ownerUsername = authSupport.requireUsername(authentication)
         return entryRepository.findByThreadOwnerUsernameAndIsHiddenTrueOrderByCreatedAtAsc(ownerUsername)
             .map { entry ->
-                EntryDetail(
+                EntryResponse(
                     id = entry.id.toString(),
                     body = entry.body,
                     parentEntryId = entry.parentEntryId?.toString(),
@@ -55,15 +45,15 @@ class EntryController(
     fun searchHiddenEntries(
         @RequestParam query: String,
         authentication: Authentication?,
-    ): List<EntryDetail> {
-        val ownerUsername = requireUsername(authentication)
+    ): List<EntryResponse> {
+        val ownerUsername = authSupport.requireUsername(authentication)
         val trimmedQuery = query.trim()
         if (trimmedQuery.isBlank()) {
             return emptyList()
         }
         return entryRepository.searchHiddenEntries(ownerUsername, trimmedQuery)
             .map { entry ->
-                EntryDetail(
+                EntryResponse(
                     id = entry.id.toString(),
                     body = entry.body,
                     parentEntryId = entry.parentEntryId?.toString(),
@@ -78,8 +68,8 @@ class EntryController(
         @PathVariable id: String,
         @RequestBody request: EntryUpdateRequest,
         authentication: Authentication?,
-    ): EntryDetail {
-        val ownerUsername = requireUsername(authentication)
+    ): EntryResponse {
+        val ownerUsername = authSupport.requireUsername(authentication)
         val entry = findEntry(id, ownerUsername)
         if (request.body != null) {
             if (request.body.isBlank()) {
@@ -89,7 +79,7 @@ class EntryController(
         }
         val saved = entryRepository.save(entry)
         bumpThreadActivity(saved.thread?.id)
-        return EntryDetail(
+        return EntryResponse(
             id = saved.id.toString(),
             body = saved.body,
             parentEntryId = saved.parentEntryId?.toString(),
@@ -103,7 +93,7 @@ class EntryController(
         @PathVariable id: String,
         authentication: Authentication?,
     ): Map<String, String> {
-        val ownerUsername = requireUsername(authentication)
+        val ownerUsername = authSupport.requireUsername(authentication)
         val entry = findEntry(id, ownerUsername)
         entry.isHidden = true
         val saved = entryRepository.save(entry)
@@ -115,13 +105,13 @@ class EntryController(
     fun restoreEntry(
         @PathVariable id: String,
         authentication: Authentication?,
-    ): EntryDetail {
-        val ownerUsername = requireUsername(authentication)
+    ): EntryResponse {
+        val ownerUsername = authSupport.requireUsername(authentication)
         val entry = findEntry(id, ownerUsername, includeHidden = true)
         entry.isHidden = false
         val saved = entryRepository.save(entry)
         bumpThreadActivity(saved.thread?.id)
-        return EntryDetail(
+        return EntryResponse(
             id = saved.id.toString(),
             body = saved.body,
             parentEntryId = saved.parentEntryId?.toString(),
@@ -157,13 +147,4 @@ class EntryController(
         threadRepository.save(thread)
     }
 
-    private fun requireUsername(authentication: Authentication?): String {
-        if (authentication == null ||
-            !authentication.isAuthenticated ||
-            authentication is AnonymousAuthenticationToken
-        ) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
-        }
-        return authentication.name
-    }
 }
