@@ -64,3 +64,40 @@ export const removeEntryFromFeed = (queryClient: QueryClient, entryId: string) =
     }))
   })
 }
+
+export const updateEntryInThreadDetail = (
+  queryClient: QueryClient,
+  threadId: string,
+  entryId: string,
+  body: string,
+) => {
+  queryClient.setQueryData(queryKeys.thread.detail(threadId), (data) => {
+    if (!data || typeof data !== 'object') {
+      return data
+    }
+    const thread = data as ThreadDetail
+    return {
+      ...thread,
+      entries: thread.entries.map((entry) =>
+        entry.id === entryId ? { ...entry, body } : entry,
+      ),
+    }
+  })
+}
+
+export const removeEntryFromThreadDetail = (
+  queryClient: QueryClient,
+  threadId: string,
+  entryId: string,
+) => {
+  queryClient.setQueryData(queryKeys.thread.detail(threadId), (data) => {
+    if (!data || typeof data !== 'object') {
+      return data
+    }
+    const thread = data as ThreadDetail
+    return {
+      ...thread,
+      entries: thread.entries.filter((entry) => entry.id !== entryId),
+    }
+  })
+}

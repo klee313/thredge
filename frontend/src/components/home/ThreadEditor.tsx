@@ -1,39 +1,7 @@
-import type { FormEvent } from 'react'
-import type { CategorySummary } from '../../lib/api'
 import { CategoryInlineCreator } from '../CategoryInlineCreator'
 import { AutosizeTextarea } from '../common/AutosizeTextarea'
 import { uiTokens } from '../../lib/uiTokens'
-
-type ThreadEditorLabels = {
-  save: string
-  saving?: string
-  cancel: string
-  categoryPlaceholder: string
-  addCategory: string
-  cancelCategory: string
-}
-
-type ThreadEditorProps = {
-  value: string
-  onChange: (value: string) => void
-  onSave: () => void
-  onCancel: () => void
-  categories: CategorySummary[]
-  selectedCategories: string[]
-  editingCategoryInput: string
-  isAddingCategory: boolean
-  isCreateCategoryPending: boolean
-  isSaving: boolean
-  buttonSize?: 'sm' | 'md'
-  onToggleCategory: (name: string) => void
-  onCategoryInputChange: (value: string) => void
-  onCategoryOpen: () => void
-  onCategoryCancel: () => void
-  onCategorySubmit: () => void
-  labels: ThreadEditorLabels
-  handleTextareaInput: (event: FormEvent<HTMLTextAreaElement>) => void
-  resizeTextarea: (element: HTMLTextAreaElement | null) => void
-}
+import type { ThreadEditorProps } from './types'
 
 export function ThreadEditor({
   value,

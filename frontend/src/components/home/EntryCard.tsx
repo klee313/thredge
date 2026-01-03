@@ -1,48 +1,11 @@
 import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
-import type { FormEvent } from 'react'
-import type { EntryDetail } from '../../lib/api'
+import type { EntryCardActions, EntryCardData, EntryCardHelpers, EntryCardUi } from './types'
 import { highlightMatches } from '../../lib/highlightMatches'
 import { isMutedText, stripMutedText, toggleMutedText } from '../../lib/mutedText'
 import eraserIcon from '../../assets/eraser.svg'
 import { EntryEditor } from './EntryEditor'
 import { ReplyComposer } from './ReplyComposer'
-
-type EntryCardData = {
-  entry: EntryDetail
-  depth: number
-  themeEntryClass: string
-  highlightQuery: string
-}
-
-type EntryCardUi = {
-  isEditing: boolean
-  editingBody: string
-  isReplyActive: boolean
-  replyDraft: string
-  isEntryUpdatePending: boolean
-  isEntryHidePending: boolean
-  isEntryToggleMutePending: boolean
-  isReplyPending: boolean
-}
-
-type EntryCardActions = {
-  onEditStart: () => void
-  onEditChange: (value: string) => void
-  onEditCancel: () => void
-  onEditSave: () => void
-  onToggleMute: (nextBody: string) => void
-  onHide: () => void
-  onReplyStart: () => void
-  onReplyChange: (value: string) => void
-  onReplyCancel: () => void
-  onReplySubmit: () => void
-}
-
-type EntryCardHelpers = {
-  handleTextareaInput: (event: FormEvent<HTMLTextAreaElement>) => void
-  resizeTextarea: (element: HTMLTextAreaElement | null) => void
-}
 
 type EntryCardProps = {
   data: EntryCardData

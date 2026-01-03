@@ -60,7 +60,7 @@ export function HomePage() {
               type="submit"
               disabled={loginMutation.isPending}
             >
-              {loginMutation.isPending ? t('home.loading') : t('home.loginButton')}
+              {loginMutation.isPending ? t('common.loading') : t('home.loginButton')}
             </button>
             {loginMutation.isError && (
               <div className="text-sm text-red-600">{t('home.loginError')}</div>

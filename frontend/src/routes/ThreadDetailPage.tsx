@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -21,11 +21,13 @@ import { EntryComposer } from '../components/home/EntryComposer'
 import { useCategoryMutations } from '../hooks/useCategoryMutations'
 import { queryKeys } from '../lib/queryKeys'
 import { useEntryActions } from '../hooks/useEntryActions'
+import { removeEntryFromThreadDetail, updateEntryInThreadDetail } from '../lib/threadCache'
 
 export function ThreadDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { state, actions } = useThreadDetailState()
   const {
     entryBody,
@@ -114,9 +116,17 @@ export function ThreadDetailPage() {
     onThreadHidden: () => {
       navigate('/')
     },
-    onEntryUpdated: (entryId, _body) => {
+    onEntryUpdated: (entryId, body) => {
       if (editingEntryId === entryId) {
         entryActions.cancelEntryEdit()
+      }
+      if (id) {
+        updateEntryInThreadDetail(queryClient, id, entryId, body)
+      }
+    },
+    onEntryHidden: (entryId) => {
+      if (id) {
+        removeEntryFromThreadDetail(queryClient, id, entryId)
       }
     },
   })
@@ -170,7 +180,7 @@ export function ThreadDetailPage() {
         className={`relative rounded-xl border pl-2 pr-1 pt-8 pb-1 shadow-sm sm:px-6 sm:py-5 ${theme.card}`}
       >
         <div className="pointer-events-none absolute left-0 top-0 h-0.5 w-full rounded-t-xl bg-gray-100" />
-        {threadQuery.isLoading && <div>{t('thread.loading')}</div>}
+        {threadQuery.isLoading && <div>{t('common.loading')}</div>}
         {threadQuery.isError && <div className="text-sm text-red-600">{t('thread.error')}</div>}
         {threadQuery.data && (
           <>

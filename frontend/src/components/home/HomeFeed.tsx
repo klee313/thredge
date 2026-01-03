@@ -346,7 +346,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     value={newCategoryInput}
                     placeholder={t('home.categoryPlaceholder')}
                     addLabel={t('home.addCategory')}
-                    cancelLabel={t('home.cancel')}
+                    cancelLabel={t('common.cancel')}
                     disabled={createCategoryMutation.isPending}
                     onOpen={() => threadActions.setIsAddingNewCategory(true)}
                     onValueChange={threadActions.setNewCategoryInput}
@@ -364,7 +364,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
               type="submit"
               disabled={createThreadMutation.isPending}
             >
-              {createThreadMutation.isPending ? t('home.loading') : t('home.createThread')}
+              {createThreadMutation.isPending ? t('common.loading') : t('home.createThread')}
             </button>
           </form>
         ) : (
@@ -474,7 +474,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
             }}
           />
           {(normalizedSearchQuery ? searchThreadsQuery : threadsQuery).isLoading && (
-            <div className="text-sm text-gray-600">{t('home.loading')}</div>
+            <div className="text-sm text-gray-600">{t('common.loading')}</div>
           )}
           {(normalizedSearchQuery ? searchThreadsQuery : threadsQuery).isError && (
             <div className="text-sm text-red-600">{t('home.error')}</div>

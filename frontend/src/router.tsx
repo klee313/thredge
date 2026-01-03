@@ -4,7 +4,7 @@ import { HomePage } from './routes/HomePage'
 import { SettingsPage } from './routes/SettingsPage'
 import { ThreadDetailPage } from './routes/ThreadDetailPage'
 import { ArchivePage } from './routes/ArchivePage'
-import { ComponentLabPage } from './routes/ComponentLabPage'
+import { ComponentLabPage } from './dev/ComponentLabPage'
 
 export const router = createBrowserRouter([
   {
