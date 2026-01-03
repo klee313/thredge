@@ -70,6 +70,7 @@ class ThreadController(
     @GetMapping("/search")
     fun searchThreads(
             @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
+            @RequestParam(required = false) categoryIds: List<String>?,
             @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
             @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
             @Min(1L)
@@ -78,7 +79,12 @@ class ThreadController(
             authentication: Authentication?,
     ): PageResponse<ThreadDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)
-        return threadService.searchThreads(ownerUsername, query, PageRequest.of(page, size))
+        return threadService.searchThreads(
+                ownerUsername,
+                query,
+                categoryIds,
+                PageRequest.of(page, size)
+        )
     }
 
     @GetMapping("/hidden")
@@ -97,6 +103,7 @@ class ThreadController(
     @GetMapping("/hidden/search")
     fun searchHiddenThreads(
             @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
+            @RequestParam(required = false) categoryIds: List<String>?,
             @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
             @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
             @Min(1L)
@@ -105,7 +112,12 @@ class ThreadController(
             authentication: Authentication?,
     ): PageResponse<ThreadSummary> {
         val ownerUsername = authSupport.requireUsername(authentication)
-        return threadService.searchHidden(ownerUsername, query, PageRequest.of(page, size))
+        return threadService.searchHidden(
+                ownerUsername,
+                query,
+                categoryIds,
+                PageRequest.of(page, size)
+        )
     }
 
     @PostMapping

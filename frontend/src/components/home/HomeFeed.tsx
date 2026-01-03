@@ -124,8 +124,8 @@ export function HomeFeed({ username }: HomeFeedProps) {
   })
 
   const searchThreadsQuery = useInfiniteQuery({
-    queryKey: queryKeys.threads.search(normalizedSearchQuery),
-    queryFn: ({ pageParam }) => searchThreadsPage(normalizedSearchQuery, pageParam),
+    queryKey: queryKeys.threads.search(normalizedSearchQuery, feedFilters.categoryIds),
+    queryFn: ({ pageParam }) => searchThreadsPage(normalizedSearchQuery, pageParam, undefined, feedFilters.categoryIds),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
     enabled: Boolean(normalizedSearchQuery),
@@ -244,34 +244,20 @@ export function HomeFeed({ username }: HomeFeedProps) {
   }, [searchThreadsQuery.data])
 
   // When using server-side filtering, just use the data directly
-  // Only apply client-side filtering when searching (search doesn't support filters yet)
+  // Only apply client-side filtering when searching if we want to filter by date (server search doesn't support date yet)
   const filteredThreads = useMemo(() => {
     if (normalizedSearchQuery) {
-      // Search results still need client-side filtering for now
+      // Search results still need client-side filtering for date
       const dateFiltered = selectedDate
         ? searchItems.filter((thread) => isSameCalendarDate(new Date(thread.createdAt), selectedDate))
         : searchItems
-      if (selectedCategories.length === 0) {
-        return dateFiltered
-      }
-      const hasUncategorizedSelected = selectedCategories.includes(UNCATEGORIZED_TOKEN)
-      const selectedNormalized = selectedCategories
-        .filter((name) => name !== UNCATEGORIZED_TOKEN)
-        .map((name) => name.trim().toLowerCase())
-      return dateFiltered.filter((thread) => {
-        const threadNames = thread.categories.map((item) => item.name.trim().toLowerCase())
-        const matchesCategory =
-          selectedNormalized.length > 0 && selectedNormalized.some((name) => threadNames.includes(name))
-        const matchesUncategorized = hasUncategorizedSelected && thread.categories.length === 0
-        return matchesCategory || matchesUncategorized
-      })
+      return dateFiltered
     }
     // Server-side filtering: data is already filtered
     return threadItems
   }, [
     threadItems,
     searchItems,
-    selectedCategories,
     selectedDate,
     normalizedSearchQuery,
     isSameCalendarDate,
@@ -312,6 +298,18 @@ export function HomeFeed({ username }: HomeFeedProps) {
   }, [normalizedSearchQuery, filteredThreads])
 
   const activeThreadsQuery = normalizedSearchQuery ? searchThreadsQuery : threadsQuery
+  const categoryTitle = useMemo(() => {
+    if (selectedCategories.length === 0) {
+      return null
+    }
+    const labels = selectedCategories.map((name) =>
+      name === UNCATEGORIZED_TOKEN ? t('home.uncategorized') : name,
+    )
+    if (labels.length === 1) {
+      return t('home.threadsTitleForCategory', { category: labels[0] })
+    }
+    return t('home.threadsTitleForCategories', { count: labels.length })
+  }, [selectedCategories, t])
 
   return (
     <div className="space-y-4 sm:space-y-8">
@@ -456,9 +454,11 @@ export function HomeFeed({ username }: HomeFeedProps) {
                 query: normalizedSearchQuery,
                 count: filteredThreads.length,
               })
-              : selectedDateLabel
-                ? t('home.threadsTitleForDate', { date: selectedDateLabel })
-                : t('home.threadsTitle')}
+              : categoryTitle
+                ? categoryTitle
+                : selectedDateLabel
+                  ? t('home.threadsTitleForDate', { date: selectedDateLabel })
+                  : t('home.threadsTitle')}
           </div>
           <DateFilter
             selectedDate={selectedDate}

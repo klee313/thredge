@@ -26,6 +26,8 @@
     "loginError": "Login failed. Check credentials.",
     "threadsTitle": "All threads",
     "threadsTitleForDate": "Threads on {{date}}",
+    "threadsTitleForCategory": "All threads in {{category}}",
+    "threadsTitleForCategories": "All threads in selected categories",
     "searchTitle": "{{count}} threads containing “{{query}}”",
     "searchPlaceholder": "Search threads & entries",
     "searching": "Searching…",

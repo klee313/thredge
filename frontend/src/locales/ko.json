@@ -26,6 +26,8 @@
     "loginError": "로그인에 실패했습니다.",
     "threadsTitle": "모든 스레드",
     "threadsTitleForDate": "{{date}} 스레드",
+    "threadsTitleForCategory": "{{category}} 카테고리의 모든 스레드",
+    "threadsTitleForCategories": "선택한 카테고리의 모든 스레드",
     "searchTitle": "“{{query}}”를 포함한 스레드 {{count}}개",
     "searchPlaceholder": "스레드/댓글 검색",
     "searching": "검색 중…",

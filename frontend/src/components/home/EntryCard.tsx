@@ -50,7 +50,7 @@ export function EntryCard({
 
   return (
     <div
-      className={`relative rounded-lg border px-1.5 py-1 shadow-sm sm:px-3 sm:py-2 ${themeEntryClass} ${indentClass}`}
+      className={`relative min-h-[65px] rounded-lg border px-1.5 py-1 pb-6 pr-16 shadow-sm sm:px-3 sm:py-2 sm:pb-6 sm:pr-20 ${themeEntryClass} ${indentClass}`}
     >
       <div className="absolute right-2 top-2 flex items-center gap-1">
         <button
@@ -82,6 +82,15 @@ export function EntryCard({
           ×
         </button>
       </div>
+      {depth < 3 && (
+        <button
+          className="absolute bottom-2 right-2 rounded-md border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700"
+          type="button"
+          onClick={onReplyStart}
+        >
+          {t('common.reply')}
+        </button>
+      )}
       {isEditing ? (
         <EntryEditor
           value={editingBody}
@@ -96,27 +105,14 @@ export function EntryCard({
       ) : (
         <>
           <div
-            className={`text-sm ${muted ? 'text-gray-400 line-through' : 'text-gray-800'}`}
+            className={`mb-2 text-sm ${muted ? 'text-gray-400 line-through' : 'text-gray-800'}`}
           >
             {highlightMatches(muted ? stripMutedText(entry.body) : entry.body, highlightQuery)}
           </div>
-          <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-            <span>
-              {formatDistanceToNow(new Date(entry.createdAt), {
-                addSuffix: true,
-              })}
-            </span>
-            <div className="flex items-center gap-2">
-              {depth < 3 && (
-                <button
-                  className="rounded-md border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700"
-                  type="button"
-                  onClick={onReplyStart}
-                >
-                  {t('common.reply')}
-                </button>
-              )}
-            </div>
+          <div className="absolute bottom-2 left-2 text-xs text-gray-500">
+            {formatDistanceToNow(new Date(entry.createdAt), {
+              addSuffix: true,
+            })}
           </div>
         </>
       )}

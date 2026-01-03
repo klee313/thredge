@@ -25,8 +25,8 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
           and t.isHidden = false
           and (:date is null or cast(t.createdAt as localdate) = :date)
           and (
-            coalesce(:categoryIds, null) is null
-            or c.id in :categoryIds
+            (:categoryIds is null and :includeUncategorized = false)
+            or (:categoryIds is not null and c.id in :categoryIds)
             or (:includeUncategorized = true and t.categories is empty)
           )
         order by t.isPinned desc, t.lastActivityAt desc
@@ -55,9 +55,15 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         @Query(
                 """
         select distinct t from ThreadEntity t
+        left join t.categories c
         left join EntryEntity e on e.thread = t
         where t.ownerUsername = :ownerUsername
           and t.isHidden = false
+          and (
+            coalesce(:categoryIds, null) is null
+            or c.id in :categoryIds
+            or (:includeUncategorized = true and t.categories is empty)
+          )
           and (
             lower(t.title) like lower(concat('%', :query, '%')) or
             lower(t.body) like lower(concat('%', :query, '%')) or
@@ -69,15 +75,23 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         fun searchVisibleThreads(
                 @Param("ownerUsername") ownerUsername: String,
                 @Param("query") query: String,
+                @Param("categoryIds") categoryIds: List<java.util.UUID>?,
+                @Param("includeUncategorized") includeUncategorized: Boolean,
                 pageable: Pageable,
         ): Slice<ThreadEntity>
 
         @Query(
                 """
         select distinct t from ThreadEntity t
+        left join t.categories c
         left join EntryEntity e on e.thread = t
         where t.ownerUsername = :ownerUsername
           and t.isHidden = true
+          and (
+            coalesce(:categoryIds, null) is null
+            or c.id in :categoryIds
+            or (:includeUncategorized = true and t.categories is empty)
+          )
           and (
             lower(t.title) like lower(concat('%', :query, '%')) or
             lower(t.body) like lower(concat('%', :query, '%')) or
@@ -89,6 +103,8 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         fun searchHiddenThreads(
                 @Param("ownerUsername") ownerUsername: String,
                 @Param("query") query: String,
+                @Param("categoryIds") categoryIds: List<java.util.UUID>?,
+                @Param("includeUncategorized") includeUncategorized: Boolean,
                 pageable: Pageable,
         ): Slice<ThreadEntity>
 

@@ -90,10 +90,25 @@ class ThreadService(
     fun searchThreads(
             ownerUsername: String,
             query: String,
+            categoryIds: List<String>?,
             pageable: Pageable
     ): PageResponse<ThreadDetail> {
         val trimmedQuery = query.trim()
-        val slice = threadRepository.searchVisibleThreads(ownerUsername, trimmedQuery, pageable)
+        val parsedIds = categoryIds?.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
+        val includeUncategorized = categoryIds?.any { it == "__uncategorized__" } ?: false
+        val filteredIds =
+                parsedIds?.filter { it.toString() != "__uncategorized__" }?.takeIf {
+                    it.isNotEmpty()
+                }
+
+        val slice =
+                threadRepository.searchVisibleThreads(
+                        ownerUsername,
+                        trimmedQuery,
+                        filteredIds,
+                        includeUncategorized,
+                        pageable
+                )
         val details = buildThreadDetails(slice.content)
         return PageResponse(
                 items = details,
@@ -117,10 +132,25 @@ class ThreadService(
     fun searchHidden(
             ownerUsername: String,
             query: String,
+            categoryIds: List<String>?,
             pageable: Pageable
     ): PageResponse<ThreadSummary> {
         val trimmedQuery = query.trim()
-        val slice = threadRepository.searchHiddenThreads(ownerUsername, trimmedQuery, pageable)
+        val parsedIds = categoryIds?.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
+        val includeUncategorized = categoryIds?.any { it == "__uncategorized__" } ?: false
+        val filteredIds =
+                parsedIds?.filter { it.toString() != "__uncategorized__" }?.takeIf {
+                    it.isNotEmpty()
+                }
+
+        val slice =
+                threadRepository.searchHiddenThreads(
+                        ownerUsername,
+                        trimmedQuery,
+                        filteredIds,
+                        includeUncategorized,
+                        pageable
+                )
         return PageResponse.from(slice.map(threadMapper::toThreadSummary))
     }
 

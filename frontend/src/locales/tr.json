@@ -26,6 +26,8 @@
     "loginError": "Giriş başarısız.",
     "threadsTitle": "Tüm iş parçacıkları",
     "threadsTitleForDate": "{{date}} tarihindeki iş parçacıkları",
+    "threadsTitleForCategory": "{{category}} kategorisindeki tüm iş parçacıkları",
+    "threadsTitleForCategories": "Seçili kategorilerdeki tüm iş parçacıkları",
     "searchTitle": "“{{query}}” içeren {{count}} iş parçacığı",
     "searchPlaceholder": "İş parçacıkları ve girdilerde ara",
     "searching": "Aranıyor…",

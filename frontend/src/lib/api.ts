@@ -164,12 +164,15 @@ export async function searchThreadsPage(
   query: string,
   page: number,
   size: number = THREAD_PAGE_SIZE,
+  categoryIds?: string[],
 ): Promise<PageResponse<ThreadDetail>> {
-  return requestJson(
-    buildPagedPath(`/api/threads/search?query=${encodeURIComponent(query)}`, page, size),
-    {},
-    'Thread search failed',
-  )
+  let path = buildPagedPath(`/api/threads/search?query=${encodeURIComponent(query)}`, page, size)
+  if (categoryIds && categoryIds.length > 0) {
+    categoryIds.forEach((id) => {
+      path += `&categoryIds=${encodeURIComponent(id)}`
+    })
+  }
+  return requestJson(path, {}, 'Thread search failed')
 }
 
 export async function updateThread(
@@ -248,12 +251,15 @@ export async function searchHiddenThreadsPage(
   query: string,
   page: number,
   size: number = THREAD_PAGE_SIZE,
+  categoryIds?: string[],
 ): Promise<PageResponse<ThreadSummary>> {
-  return requestJson(
-    buildPagedPath(`/api/threads/hidden/search?query=${encodeURIComponent(query)}`, page, size),
-    {},
-    'Hidden threads search failed',
-  )
+  let path = buildPagedPath(`/api/threads/hidden/search?query=${encodeURIComponent(query)}`, page, size)
+  if (categoryIds && categoryIds.length > 0) {
+    categoryIds.forEach((id) => {
+      path += `&categoryIds=${encodeURIComponent(id)}`
+    })
+  }
+  return requestJson(path, {}, 'Hidden threads search failed')
 }
 
 export async function restoreThread(id: string): Promise<ThreadSummary> {

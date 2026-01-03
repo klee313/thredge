@@ -11,10 +11,12 @@ export const queryKeys = {
     feedFiltered: (date?: string | null, categoryIds?: string[]) =>
       ['threads', 'feed', { date, categoryIds }] as const,
     searchRoot: threadsSearchRoot,
-    search: (query: string) => [...threadsSearchRoot, query] as const,
+    search: (query: string, categoryIds?: string[]) =>
+      [...threadsSearchRoot, query, { categoryIds }] as const,
     hidden: ['threads', 'hidden'] as const,
     hiddenSearchRoot: threadsHiddenSearchRoot,
-    hiddenSearch: (query: string) => [...threadsHiddenSearchRoot, query] as const,
+    hiddenSearch: (query: string, categoryIds?: string[]) =>
+      [...threadsHiddenSearchRoot, query, { categoryIds }] as const,
   },
   thread: {
     detail: (id?: string) => ['thread', id] as const,
