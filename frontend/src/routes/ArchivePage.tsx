@@ -75,7 +75,7 @@ export function ArchivePage() {
       <div className={uiTokens.card.surface}>
         <div className="text-sm font-semibold">{t('archive.hiddenThreads')}</div>
         <input
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:mt-2"
+          className={`mt-1 ${uiTokens.input.base} ${uiTokens.input.paddingMd} sm:mt-2`}
           placeholder={t('archive.filterThreads')}
           value={threads.filter}
           onChange={(event) => threads.setFilter(event.target.value)}
@@ -130,7 +130,7 @@ export function ArchivePage() {
       <div className={uiTokens.card.surface}>
         <div className="text-sm font-semibold">{t('archive.hiddenEntries')}</div>
         <input
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:mt-2"
+          className={`mt-1 ${uiTokens.input.base} ${uiTokens.input.paddingMd} sm:mt-2`}
           placeholder={t('archive.filterEntries')}
           value={entries.filter}
           onChange={(event) => entries.setFilter(event.target.value)}

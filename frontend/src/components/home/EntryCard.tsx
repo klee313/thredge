@@ -8,11 +8,14 @@ import eraserIcon from '../../assets/eraser.svg'
 import { EntryEditor } from './EntryEditor'
 import { ReplyComposer } from './ReplyComposer'
 
-type EntryCardProps = {
+type EntryCardData = {
   entry: EntryDetail
   depth: number
   themeEntryClass: string
   highlightQuery: string
+}
+
+type EntryCardUi = {
   isEditing: boolean
   editingBody: string
   isReplyActive: boolean
@@ -21,6 +24,9 @@ type EntryCardProps = {
   isEntryHidePending: boolean
   isEntryToggleMutePending: boolean
   isReplyPending: boolean
+}
+
+type EntryCardActions = {
   onEditStart: () => void
   onEditChange: (value: string) => void
   onEditCancel: () => void
@@ -31,37 +37,51 @@ type EntryCardProps = {
   onReplyChange: (value: string) => void
   onReplyCancel: () => void
   onReplySubmit: () => void
+}
+
+type EntryCardHelpers = {
   handleTextareaInput: (event: FormEvent<HTMLTextAreaElement>) => void
   resizeTextarea: (element: HTMLTextAreaElement | null) => void
 }
 
+type EntryCardProps = {
+  data: EntryCardData
+  ui: EntryCardUi
+  actions: EntryCardActions
+  helpers: EntryCardHelpers
+}
+
 export function EntryCard({
-  entry,
-  depth,
-  themeEntryClass,
-  highlightQuery,
-  isEditing,
-  editingBody,
-  isReplyActive,
-  replyDraft,
-  isEntryUpdatePending,
-  isEntryHidePending,
-  isEntryToggleMutePending,
-  isReplyPending,
-  onEditStart,
-  onEditChange,
-  onEditCancel,
-  onEditSave,
-  onToggleMute,
-  onHide,
-  onReplyStart,
-  onReplyChange,
-  onReplyCancel,
-  onReplySubmit,
-  handleTextareaInput,
-  resizeTextarea,
+  data,
+  ui,
+  actions,
+  helpers,
 }: EntryCardProps) {
   const { t } = useTranslation()
+  const { entry, depth, themeEntryClass, highlightQuery } = data
+  const {
+    isEditing,
+    editingBody,
+    isReplyActive,
+    replyDraft,
+    isEntryUpdatePending,
+    isEntryHidePending,
+    isEntryToggleMutePending,
+    isReplyPending,
+  } = ui
+  const {
+    onEditStart,
+    onEditChange,
+    onEditCancel,
+    onEditSave,
+    onToggleMute,
+    onHide,
+    onReplyStart,
+    onReplyChange,
+    onReplyCancel,
+    onReplySubmit,
+  } = actions
+  const { handleTextareaInput, resizeTextarea } = helpers
   const indentClass = depth === 2 ? 'ml-6' : depth >= 3 ? 'ml-12' : ''
   const muted = isMutedText(entry.body)
 

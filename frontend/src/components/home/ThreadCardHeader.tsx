@@ -3,6 +3,7 @@ import pinFilledIcon from '../../assets/pin-filled.svg'
 import eraserIcon from '../../assets/eraser.svg'
 import type { ThreadDetail } from '../../lib/api'
 import { isMutedText } from '../../lib/mutedText'
+import { uiTokens } from '../../lib/uiTokens'
 
 type ThreadCardHeaderProps = {
   thread: ThreadDetail
@@ -60,7 +61,7 @@ export function ThreadCardHeader({
           ? editingThreadCategories.map((categoryName) => (
               <button
                 key={categoryName}
-                className="inline-flex rounded-full border border-gray-900 bg-gray-900 px-2 py-0.5 text-xs font-normal text-white"
+                className={uiTokens.tag.solid}
                 type="button"
                 onClick={() => onEditingCategoryToggle(categoryName)}
               >
@@ -70,7 +71,7 @@ export function ThreadCardHeader({
           : thread.categories.map((category) => (
               <span
                 key={category.id}
-                className="inline-flex rounded-full border border-gray-200 px-2 py-0.5 text-xs font-normal text-gray-600"
+                className={uiTokens.tag.outline}
               >
                 {category.name}
               </span>

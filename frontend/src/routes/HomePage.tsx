@@ -39,7 +39,7 @@ export function HomePage() {
             <label className="block text-sm">
               <span className="text-gray-600">{t('home.username')}</span>
               <input
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className={`mt-1 ${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 autoComplete="username"
@@ -48,7 +48,7 @@ export function HomePage() {
             <label className="block text-sm">
               <span className="text-gray-600">{t('home.password')}</span>
               <input
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className={`mt-1 ${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}

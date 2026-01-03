@@ -17,10 +17,10 @@ import { deriveTitleFromBody, getBodyWithoutTitle } from '../lib/threadText'
 import { isMutedText, stripMutedText, toggleMutedText } from '../lib/mutedText'
 import { ThreadCardHeader } from '../components/home/ThreadCardHeader'
 import { ThreadEditor } from '../components/home/ThreadEditor'
+import { EntryComposer } from '../components/home/EntryComposer'
 import { useCategoryMutations } from '../hooks/useCategoryMutations'
 import { queryKeys } from '../lib/queryKeys'
 import { useEntryActions } from '../hooks/useEntryActions'
-import { uiTokens } from '../lib/uiTokens'
 
 export function ThreadDetailPage() {
   const { t } = useTranslation()
@@ -303,83 +303,72 @@ export function ThreadDetailPage() {
               {threadQuery.data.entries.map((entry) => (
                 <EntryCard
                   key={entry.id}
-                  entry={entry}
-                  depth={entryDepth.get(entry.id) ?? 1}
-                  themeEntryClass={theme.entry}
-                  highlightQuery=""
-                  isEditing={editingEntryId === entry.id}
-                  editingBody={editingEntryBody}
-                  isReplyActive={activeReplyId === entry.id}
-                  replyDraft={replyDrafts[entry.id] ?? ''}
-                  isEntryUpdatePending={updateEntryMutation.isPending}
-                  isEntryHidePending={hideEntryMutation.isPending}
-                  isEntryToggleMutePending={toggleEntryMuteMutation.isPending}
-                  isReplyPending={createEntryMutation.isPending}
-                  onEditStart={() => startEntryEdit(entry)}
-                  onEditChange={setEditingEntryBody}
-                  onEditCancel={cancelEntryEdit}
-                  onEditSave={() =>
-                    updateEntryMutation.mutate({
-                      entryId: entry.id,
-                      body: editingEntryBody,
-                    })
-                  }
-                  onToggleMute={(nextBody) =>
-                    toggleEntryMuteMutation.mutate({ entryId: entry.id, body: nextBody })
-                  }
-                  onHide={() => hideEntryMutation.mutate(entry.id)}
-                  onReplyStart={() => startReply(entry.id)}
-                  onReplyChange={(value) => updateReplyDraft(entry.id, value)}
-                  onReplyCancel={cancelReply}
-                  onReplySubmit={() => {
-                    const body = replyDrafts[entry.id]?.trim()
-                    if (!body) {
-                      return
-                    }
-                    createEntryMutation.mutate({
-                      threadId: threadQuery.data.id,
-                      body,
-                      parentEntryId: entry.id,
-                    })
+                  data={{
+                    entry,
+                    depth: entryDepth.get(entry.id) ?? 1,
+                    themeEntryClass: theme.entry,
+                    highlightQuery: '',
                   }}
-                  handleTextareaInput={handleTextareaInput}
-                  resizeTextarea={resizeTextarea}
+                  ui={{
+                    isEditing: editingEntryId === entry.id,
+                    editingBody: editingEntryBody,
+                    isReplyActive: activeReplyId === entry.id,
+                    replyDraft: replyDrafts[entry.id] ?? '',
+                    isEntryUpdatePending: updateEntryMutation.isPending,
+                    isEntryHidePending: hideEntryMutation.isPending,
+                    isEntryToggleMutePending: toggleEntryMuteMutation.isPending,
+                    isReplyPending: createEntryMutation.isPending,
+                  }}
+                  actions={{
+                    onEditStart: () => startEntryEdit(entry),
+                    onEditChange: setEditingEntryBody,
+                    onEditCancel: cancelEntryEdit,
+                    onEditSave: () =>
+                      updateEntryMutation.mutate({
+                        entryId: entry.id,
+                        body: editingEntryBody,
+                      }),
+                    onToggleMute: (nextBody) =>
+                      toggleEntryMuteMutation.mutate({ entryId: entry.id, body: nextBody }),
+                    onHide: () => hideEntryMutation.mutate(entry.id),
+                    onReplyStart: () => startReply(entry.id),
+                    onReplyChange: (value) => updateReplyDraft(entry.id, value),
+                    onReplyCancel: cancelReply,
+                    onReplySubmit: () => {
+                      const body = replyDrafts[entry.id]?.trim()
+                      if (!body) {
+                        return
+                      }
+                      createEntryMutation.mutate({
+                        body,
+                        parentEntryId: entry.id,
+                      })
+                    },
+                  }}
+                  helpers={{
+                    handleTextareaInput,
+                    resizeTextarea,
+                  }}
                 />
               ))}
               {threadQuery.data.entries.length === 0 && (
                 <div className="text-sm text-gray-600">{t('thread.empty')}</div>
               )}
             </div>
-            <form
-              className="mt-2 space-y-2 sm:mt-4"
-              onSubmit={(event) => {
-                event.preventDefault()
-                if (!entryBody.trim()) {
-                  return
-                }
+            <EntryComposer
+              value={entryBody}
+              placeholder={t('home.entryPlaceholder')}
+              onChange={setEntryBody}
+              onSubmit={() =>
                 createEntryMutation.mutate({
-                  threadId: threadQuery.data.id,
                   body: entryBody,
                 })
-              }}
-            >
-              <textarea
-                className="min-h-[72px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
-                placeholder={t('home.entryPlaceholder')}
-                value={entryBody}
-                onChange={(event) => setEntryBody(event.target.value)}
-                onInput={handleTextareaInput}
-                data-autoresize="true"
-                ref={(element) => resizeTextarea(element)}
-              />
-              <button
-                className={uiTokens.button.primaryMd}
-                type="submit"
-                disabled={createEntryMutation.isPending}
-              >
-                {createEntryMutation.isPending ? t('home.loading') : t('home.addEntry')}
-              </button>
-            </form>
+              }
+              isSubmitting={createEntryMutation.isPending}
+              labels={{ submit: t('home.addEntry'), submitting: t('home.loading') }}
+              handleTextareaInput={handleTextareaInput}
+              resizeTextarea={resizeTextarea}
+            />
             <div className="mt-2 text-xs text-gray-500 sm:mt-4">
               {t('home.lastActivity', {
                 time: formatDistanceToNow(new Date(threadQuery.data.lastActivityAt), {

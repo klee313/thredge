@@ -5,6 +5,12 @@ import { queryKeys } from '../lib/queryKeys'
 
 type InvalidateTarget = 'feed' | 'search' | 'thread'
 
+type CreateEntryInput = {
+  threadId?: string
+  body: string
+  parentEntryId?: string
+}
+
 type CreateEntryVariables = {
   threadId: string
   body: string
@@ -38,11 +44,25 @@ export const useEntryActions = (options: EntryActionsOptions = {}) => {
   }
 
   const createEntryMutation = useMutation({
-    mutationFn: ({ threadId, body, parentEntryId }: CreateEntryVariables) =>
-      addEntry(threadId, body, parentEntryId),
+    mutationFn: ({ threadId, body, parentEntryId }: CreateEntryInput) => {
+      const resolvedThreadId = threadId ?? options.threadId
+      if (!resolvedThreadId) {
+        throw new Error('Entry create failed: missing thread id')
+      }
+      return addEntry(resolvedThreadId, body, parentEntryId)
+    },
     onSuccess: async (created, variables) => {
-      options.onEntryCreated?.(created, variables)
-      await invalidateEntryKeys(variables.threadId)
+      const resolvedThreadId = variables.threadId ?? options.threadId
+      if (!resolvedThreadId) {
+        return
+      }
+      const normalizedVariables: CreateEntryVariables = {
+        threadId: resolvedThreadId,
+        body: variables.body,
+        parentEntryId: variables.parentEntryId,
+      }
+      options.onEntryCreated?.(created, normalizedVariables)
+      await invalidateEntryKeys(resolvedThreadId)
     },
   })
 

@@ -2,6 +2,15 @@ export const uiTokens = {
   card: {
     surface: 'rounded-lg border bg-white p-3 text-gray-900 sm:p-4',
   },
+  input: {
+    base: 'w-full rounded-md border border-gray-300 text-sm',
+    paddingMd: 'px-3 py-2',
+    paddingMdWide: 'px-6 py-2',
+  },
+  tag: {
+    solid: 'inline-flex rounded-full border border-gray-900 bg-gray-900 px-2 py-0.5 text-xs font-normal text-white',
+    outline: 'inline-flex rounded-full border border-gray-200 px-2 py-0.5 text-xs font-normal text-gray-600',
+  },
   button: {
     primaryXs: 'rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white',
     secondaryXs: 'rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700',

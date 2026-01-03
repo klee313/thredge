@@ -8,7 +8,7 @@ import { isMutedText, stripMutedText } from '../../lib/mutedText'
 import { EntryCard } from './EntryCard'
 import { ThreadCardHeader } from './ThreadCardHeader'
 import { ThreadEditor } from './ThreadEditor'
-import { uiTokens } from '../../lib/uiTokens'
+import { EntryComposer } from './EntryComposer'
 
 type ThreadCardData = {
   thread: ThreadDetail
@@ -232,60 +232,51 @@ export function ThreadCard({ data, ui, actions, helpers }: ThreadCardProps) {
         {thread.entries.map((entry) => (
           <EntryCard
             key={entry.id}
-            entry={entry}
-            depth={entryDepth.get(entry.id) ?? 1}
-            themeEntryClass={theme.entry}
-            highlightQuery={normalizedSearchQuery}
-            isEditing={editingEntryId === entry.id}
-            editingBody={editingEntryBody}
-            isReplyActive={activeReplyId === entry.id}
-            replyDraft={replyDrafts[entry.id] ?? ''}
-            isEntryUpdatePending={isEntryUpdatePending}
-            isEntryHidePending={isEntryHidePending}
-            isEntryToggleMutePending={isEntryToggleMutePending}
-            isReplyPending={isReplyPending}
-            onEditStart={() => onEntryEditStart(entry.id, entry.body)}
-            onEditChange={onEntryEditChange}
-            onEditCancel={onEntryEditCancel}
-            onEditSave={() => onEntryEditSave(entry.id)}
-            onToggleMute={(nextBody) => onEntryToggleMute(entry.id, nextBody)}
-            onHide={() => onEntryHide(entry.id)}
-            onReplyStart={() => onReplyStart(entry.id)}
-            onReplyChange={(value) => onReplyChange(entry.id, value)}
-            onReplyCancel={onReplyCancel}
-            onReplySubmit={() => onReplySubmit(entry.id)}
-            handleTextareaInput={handleTextareaInput}
-            resizeTextarea={resizeTextarea}
+            data={{
+              entry,
+              depth: entryDepth.get(entry.id) ?? 1,
+              themeEntryClass: theme.entry,
+              highlightQuery: normalizedSearchQuery,
+            }}
+            ui={{
+              isEditing: editingEntryId === entry.id,
+              editingBody: editingEntryBody,
+              isReplyActive: activeReplyId === entry.id,
+              replyDraft: replyDrafts[entry.id] ?? '',
+              isEntryUpdatePending,
+              isEntryHidePending,
+              isEntryToggleMutePending,
+              isReplyPending,
+            }}
+            actions={{
+              onEditStart: () => onEntryEditStart(entry.id, entry.body),
+              onEditChange: onEntryEditChange,
+              onEditCancel: onEntryEditCancel,
+              onEditSave: () => onEntryEditSave(entry.id),
+              onToggleMute: (nextBody) => onEntryToggleMute(entry.id, nextBody),
+              onHide: () => onEntryHide(entry.id),
+              onReplyStart: () => onReplyStart(entry.id),
+              onReplyChange: (value) => onReplyChange(entry.id, value),
+              onReplyCancel: onReplyCancel,
+              onReplySubmit: () => onReplySubmit(entry.id),
+            }}
+            helpers={{
+              handleTextareaInput,
+              resizeTextarea,
+            }}
           />
         ))}
       </div>
-      <form
-        className="mt-2 space-y-2 sm:mt-4"
-        onSubmit={(event) => {
-          event.preventDefault()
-          if (!newEntryDraft.trim()) {
-            return
-          }
-          onNewEntrySubmit()
-        }}
-      >
-        <textarea
-          className="min-h-[72px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
-          placeholder={t('home.entryPlaceholder')}
-          value={newEntryDraft}
-          onChange={(event) => onNewEntryChange(event.target.value)}
-          onInput={handleTextareaInput}
-          data-autoresize="true"
-          ref={(element) => resizeTextarea(element)}
-        />
-        <button
-          className={uiTokens.button.primaryMd}
-          type="submit"
-          disabled={isAddEntryPending}
-        >
-          {isAddEntryPending ? t('home.loading') : t('home.addEntry')}
-        </button>
-      </form>
+      <EntryComposer
+        value={newEntryDraft}
+        placeholder={t('home.entryPlaceholder')}
+        onChange={onNewEntryChange}
+        onSubmit={onNewEntrySubmit}
+        isSubmitting={isAddEntryPending}
+        labels={{ submit: t('home.addEntry'), submitting: t('home.loading') }}
+        handleTextareaInput={handleTextareaInput}
+        resizeTextarea={resizeTextarea}
+      />
       <div className="mt-2 text-xs text-gray-500 sm:mt-4">
         {t('home.lastActivity', {
           time: formatDistanceToNow(new Date(thread.lastActivityAt), { addSuffix: true }),

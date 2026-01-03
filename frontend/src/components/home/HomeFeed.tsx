@@ -363,7 +363,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
           <div className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
             <div className="relative w-full max-w-sm">
               <input
-                className="w-full rounded-md border border-gray-300 px-6 py-2 pr-12 text-sm"
+                className={`${uiTokens.input.base} ${uiTokens.input.paddingMdWide} pr-12`}
                 placeholder={t('home.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(event) => uiActions.setSearchQuery(event.target.value)}

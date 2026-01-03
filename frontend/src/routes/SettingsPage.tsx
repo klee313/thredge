@@ -80,7 +80,7 @@ export function SettingsPage() {
         <div className="space-y-1">
           <label className="text-sm text-gray-700">{t('settings.uiLanguage')}</label>
           <select
-            className="w-full rounded-md border px-3 py-2"
+            className={`${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
             {...register('uiLanguage')}
           >
             <option value="ko">ko</option>
@@ -110,7 +110,7 @@ export function SettingsPage() {
           }}
         >
           <input
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            className={`flex-1 ${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
             placeholder={t('settings.categoryPlaceholder')}
             value={newCategory}
             onChange={(event) => setNewCategory(event.target.value)}
@@ -150,7 +150,7 @@ export function SettingsPage() {
                   }}
                 >
                   <input
-                    className="flex-1 rounded-md border border-gray-300 px-3 py-1 text-sm"
+                    className={`flex-1 ${uiTokens.input.base} px-3 py-1`}
                     value={editingCategoryName}
                     onChange={(event) => setEditingCategoryName(event.target.value)}
                   />
