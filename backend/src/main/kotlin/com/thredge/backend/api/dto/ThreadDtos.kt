@@ -34,5 +34,5 @@ data class ThreadUpdateRequest(
     val title: String? = null,
     @field:NotBlankIfPresent(message = "Body is required.")
     val body: String? = null,
-    val categoryNames: List<String> = emptyList(),
+    val categoryNames: List<String>? = null,
 )

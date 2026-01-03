@@ -16,6 +16,7 @@ data class EntryDetail(
     val body: String,
     val parentEntryId: String?,
     val createdAt: Instant,
+    // Thread detail responses omit this field to keep payloads small.
     val threadId: String?,
 )
 

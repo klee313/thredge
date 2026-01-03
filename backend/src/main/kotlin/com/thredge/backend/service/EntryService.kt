@@ -11,6 +11,7 @@ import com.thredge.backend.support.NotFoundException
 import java.time.Instant
 import java.util.UUID
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class EntryService(
@@ -24,13 +25,11 @@ class EntryService(
 
     fun searchHidden(ownerUsername: String, query: String): List<EntryDetail> {
         val trimmedQuery = query.trim()
-        if (trimmedQuery.isBlank()) {
-            return emptyList()
-        }
         return entryRepository.searchHiddenEntries(ownerUsername, trimmedQuery)
             .map(threadMapper::toEntryDetail)
     }
 
+    @Transactional
     fun updateEntry(ownerUsername: String, id: String, request: EntryUpdateRequest): EntryDetail {
         val entry = findEntry(id, ownerUsername)
         if (request.body != null) {
@@ -41,6 +40,7 @@ class EntryService(
         return threadMapper.toEntryDetail(saved)
     }
 
+    @Transactional
     fun hideEntry(ownerUsername: String, id: String) {
         val entry = findEntry(id, ownerUsername)
         entry.isHidden = true
@@ -48,6 +48,7 @@ class EntryService(
         bumpThreadActivity(saved.thread?.id)
     }
 
+    @Transactional
     fun restoreEntry(ownerUsername: String, id: String): EntryDetail {
         val entry = findEntry(id, ownerUsername, includeHidden = true)
         entry.isHidden = false

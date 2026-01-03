@@ -19,6 +19,7 @@ import com.thredge.backend.support.NotFoundException
 import java.time.Instant
 import java.util.UUID
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ThreadService(
@@ -38,9 +39,6 @@ class ThreadService(
 
     fun searchThreads(ownerUsername: String, query: String): List<ThreadDetail> {
         val trimmedQuery = query.trim()
-        if (trimmedQuery.isBlank()) {
-            return emptyList()
-        }
         val threads = threadRepository.searchVisibleThreads(ownerUsername, trimmedQuery)
         return threads.map(::buildThreadDetail)
     }
@@ -51,9 +49,6 @@ class ThreadService(
 
     fun searchHidden(ownerUsername: String, query: String): List<ThreadSummary> {
         val trimmedQuery = query.trim()
-        if (trimmedQuery.isBlank()) {
-            return emptyList()
-        }
         return threadRepository.searchHiddenThreads(ownerUsername, trimmedQuery)
             .map(threadMapper::toThreadSummary)
     }
@@ -88,7 +83,9 @@ class ThreadService(
         } else if (!request.title.isNullOrBlank()) {
             thread.title = request.title.trim()
         }
-        thread.categories = resolveCategories(request.categoryNames, ownerUsername).toMutableSet()
+        request.categoryNames?.let { names ->
+            thread.categories = resolveCategories(names, ownerUsername).toMutableSet()
+        }
         thread.lastActivityAt = Instant.now()
         val saved = threadRepository.save(thread)
         return threadMapper.toThreadSummary(saved)
@@ -124,6 +121,7 @@ class ThreadService(
         return threadMapper.toThreadSummary(saved)
     }
 
+    @Transactional
     fun addEntry(ownerUsername: String, threadId: String, request: EntryRequest): EntryDetail {
         val thread = findThread(threadId, ownerUsername)
         val parentEntryId = request.parentEntryId?.let {

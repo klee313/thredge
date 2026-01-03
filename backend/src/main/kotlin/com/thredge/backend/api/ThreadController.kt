@@ -9,7 +9,9 @@ import com.thredge.backend.api.dto.ThreadUpdateRequest
 import com.thredge.backend.service.ThreadService
 import com.thredge.backend.support.AuthSupport
 import jakarta.validation.Valid
+import jakarta.validation.constraints.NotBlank
 import org.springframework.security.core.Authentication
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/threads")
+@Validated
 class ThreadController(
     private val threadService: ThreadService,
     private val authSupport: AuthSupport,
@@ -40,7 +43,7 @@ class ThreadController(
 
     @GetMapping("/search")
     fun searchThreads(
-        @RequestParam query: String,
+        @RequestParam @NotBlank(message = "Query is required.") query: String,
         authentication: Authentication?,
     ): List<ThreadDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)
@@ -55,7 +58,7 @@ class ThreadController(
 
     @GetMapping("/hidden/search")
     fun searchHiddenThreads(
-        @RequestParam query: String,
+        @RequestParam @NotBlank(message = "Query is required.") query: String,
         authentication: Authentication?,
     ): List<ThreadSummary> {
         val ownerUsername = authSupport.requireUsername(authentication)
