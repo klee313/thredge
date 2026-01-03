@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -16,6 +15,11 @@ import {
   updateEntry,
   updateThread,
 } from '../lib/api'
+import { useTextareaAutosize } from '../hooks/useTextareaAutosize'
+import { buildEntryDepthMap } from '../lib/entryDepth'
+import { deriveTitleFromBody, getBodyWithoutTitle } from '../lib/threadText'
+import { isMutedText, stripMutedText, toggleMutedText } from '../lib/mutedText'
+import { CategoryInlineCreator } from '../components/CategoryInlineCreator'
 import pinIcon from '../assets/pin.svg'
 import pinFilledIcon from '../assets/pin-filled.svg'
 import eraserIcon from '../assets/eraser.svg'
@@ -35,37 +39,9 @@ export function ThreadDetailPage() {
   const [editingThreadCategories, setEditingThreadCategories] = useState<string[]>([])
   const [editingCategoryInput, setEditingCategoryInput] = useState('')
   const [isAddingEditingCategory, setIsAddingEditingCategory] = useState(false)
-  const editingCategoryInputRef = useRef<HTMLInputElement | null>(null)
-
-  const MAX_TEXTAREA_HEIGHT = 240
-
-  const isMutedText = (text?: string | null) =>
-    Boolean(text && text.startsWith('~~') && text.endsWith('~~') && text.length > 4)
-  const stripMutedText = (text: string) => text.slice(2, -2)
-  const toggleMutedText = (text: string) => (isMutedText(text) ? stripMutedText(text) : `~~${text}~~`)
-
-  const resizeTextarea = (element: HTMLTextAreaElement | null) => {
-    if (!element) {
-      return
-    }
-    element.style.height = 'auto'
-    const nextHeight = Math.min(element.scrollHeight, MAX_TEXTAREA_HEIGHT)
-    element.style.height = `${nextHeight}px`
-    element.style.overflowY = element.scrollHeight > MAX_TEXTAREA_HEIGHT ? 'auto' : 'hidden'
-  }
-
-  const handleTextareaInput = (event: FormEvent<HTMLTextAreaElement>) => {
-    resizeTextarea(event.currentTarget)
-  }
-
-  useEffect(() => {
-    const rafId = window.requestAnimationFrame(() => {
-      document
-        .querySelectorAll<HTMLTextAreaElement>('textarea[data-autoresize="true"]')
-        .forEach((element) => resizeTextarea(element))
-    })
-    return () => window.cancelAnimationFrame(rafId)
-  }, [editingThreadBody, editingEntryBody, replyDrafts, entryBody])
+  const { handleTextareaInput, resizeTextarea } = useTextareaAutosize({
+    deps: [editingThreadBody, editingEntryBody, replyDrafts, entryBody],
+  })
 
   const threadQuery = useQuery({
     queryKey: ['thread', id],
@@ -205,63 +181,6 @@ export function ThreadDetailPage() {
     }
   }, [threadQuery.data])
 
-  const getBodyWithoutTitle = (title: string, body: string) => {
-    const normalizedBody = body.replace(/\r\n/g, '\n')
-    const trimmedTitle = title.trim()
-    if (!trimmedTitle) {
-      return normalizedBody.trim()
-    }
-    let remainder = normalizedBody
-    if (remainder.startsWith(trimmedTitle)) {
-      remainder = remainder.slice(trimmedTitle.length)
-    } else {
-      const trimmedBody = remainder.trimStart()
-      if (trimmedBody.startsWith(trimmedTitle)) {
-        remainder = trimmedBody.slice(trimmedTitle.length)
-      }
-    }
-    return remainder.replace(/^\s+/, '').trimEnd()
-  }
-
-  const deriveTitleFromBody = (body: string) => {
-    const normalizedBody = body.replace(/\r\n/g, '\n')
-    const firstLine = normalizedBody.split('\n').find((line) => line.trim().length > 0) ?? ''
-    const source = firstLine.trim() || normalizedBody.trim()
-    return source.slice(0, 200)
-  }
-
-  const buildEntryDepthMap = (
-    entries: { id: string; parentEntryId?: string | null }[],
-  ) => {
-    const entryById = new Map(entries.map((entry) => [entry.id, entry]))
-    const depthCache = new Map<string, number>()
-    const getDepth = (entryId: string) => {
-      const cached = depthCache.get(entryId)
-      if (cached) {
-        return cached
-      }
-      let depth = 1
-      let currentId = entryById.get(entryId)?.parentEntryId ?? null
-      while (currentId) {
-        const parent = entryById.get(currentId)
-        if (!parent) {
-          break
-        }
-        depth += 1
-        currentId = parent.parentEntryId ?? null
-        if (depth >= 3) {
-          break
-        }
-      }
-      depthCache.set(entryId, depth)
-      return depth
-    }
-    entries.forEach((entry) => {
-      getDepth(entry.id)
-    })
-    return depthCache
-  }
-
   const entryDepth = useMemo(() => {
     const entries = threadQuery.data?.entries ?? []
     return buildEntryDepthMap(entries)
@@ -368,7 +287,6 @@ export function ThreadDetailPage() {
                     setEditingThreadCategories(threadQuery.data.categories.map((item) => item.name))
                     setEditingCategoryInput('')
                     setIsAddingEditingCategory(false)
-                    requestAnimationFrame(() => editingCategoryInputRef.current?.focus())
                   }}
                   aria-label={t('home.edit')}
                 >
@@ -476,57 +394,21 @@ export function ThreadDetailPage() {
                           )
                         })}
                       <div className="flex items-center">
-                        {isAddingEditingCategory ? (
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              className="w-44 rounded-full border border-gray-300 px-3 py-1 text-xs transition-all"
-                              placeholder={t('home.categoryPlaceholder')}
-                              value={editingCategoryInput}
-                              onChange={(event) => setEditingCategoryInput(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault()
-                                  event.stopPropagation()
-                                  submitCategory()
-                                }
-                                if (event.key === 'Escape') {
-                                  event.stopPropagation()
-                                  setEditingCategoryInput('')
-                                  setIsAddingEditingCategory(false)
-                                }
-                              }}
-                              ref={editingCategoryInputRef}
-                              disabled={createCategoryMutation.isPending}
-                            />
-                            <button
-                              className="flex h-7 items-center justify-center rounded-full border border-gray-300 px-2 text-[11px] font-semibold text-gray-700 transition-all"
-                              type="button"
-                              onClick={() => submitCategory()}
-                              disabled={createCategoryMutation.isPending}
-                            >
-                              {t('home.addCategory')}
-                            </button>
-                            <button
-                              className="flex h-7 items-center justify-center rounded-full border border-gray-300 px-2 text-[11px] font-semibold text-gray-700 transition-all"
-                              type="button"
-                              onClick={() => {
-                                setEditingCategoryInput('')
-                                setIsAddingEditingCategory(false)
-                              }}
-                              disabled={createCategoryMutation.isPending}
-                            >
-                              {t('home.cancel')}
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-300 text-xs font-semibold text-gray-700 transition-all"
-                            type="button"
-                            onClick={() => setIsAddingEditingCategory(true)}
-                          >
-                            +
-                          </button>
-                        )}
+                        <CategoryInlineCreator
+                          isOpen={isAddingEditingCategory}
+                          value={editingCategoryInput}
+                          placeholder={t('home.categoryPlaceholder')}
+                          addLabel={t('home.addCategory')}
+                          cancelLabel={t('home.cancel')}
+                          disabled={createCategoryMutation.isPending}
+                          onOpen={() => setIsAddingEditingCategory(true)}
+                          onValueChange={setEditingCategoryInput}
+                          onSubmit={submitCategory}
+                          onCancel={() => {
+                            setEditingCategoryInput('')
+                            setIsAddingEditingCategory(false)
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
