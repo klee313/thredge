@@ -20,6 +20,7 @@ import { DateFilter } from './DateFilter'
 import { ThreadCard } from './ThreadCard'
 import { useDateFilter } from '../../hooks/useDateFilter'
 import { useThreadActions } from '../../hooks/useThreadActions'
+import { THREAD_LIST_INVALIDATIONS } from '../../hooks/threadActionPresets'
 import { useHomeFeedState } from '../../hooks/useHomeFeedState'
 
 type HomeFeedProps = {
@@ -52,27 +53,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
     activeComposerTab,
   } = state
   const {
-    setThreadBody,
-    setNewThreadCategories,
-    setNewCategoryInput,
-    setIsAddingNewCategory,
-    setSelectedCategories,
-    setEditingThreadCategories,
-    setEditingThreadBody,
-    setEditingCategoryInput,
-    setIsAddingEditingCategory,
-    setEditingEntryBody,
-    setSearchQuery,
-    setActiveComposerTab,
-    startEditThread,
-    cancelEditThread,
-    toggleEditingCategory,
-    startEntryEdit,
-    cancelEntryEdit,
-    startReply,
-    cancelReply,
-    updateReplyDraft,
-    updateEntryDraft,
+    thread: threadActions,
+    entry: entryActions,
+    reply: replyActions,
+    ui: uiActions,
   } = actions
 
   const normalizedSearchQuery = useDebouncedValue(searchQuery.trim(), 250)
@@ -109,10 +93,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
   const createThreadMutation = useMutation({
     mutationFn: () => createThread(threadBody || null, newThreadCategories),
     onSuccess: async () => {
-      setThreadBody('')
-      setNewThreadCategories([])
-      setNewCategoryInput('')
-      setIsAddingNewCategory(false)
+      threadActions.setThreadBody('')
+      threadActions.setNewThreadCategories([])
+      threadActions.setNewCategoryInput('')
+      threadActions.setIsAddingNewCategory(false)
       await queryClient.invalidateQueries({ queryKey: ['threads', 'feed'] })
       await queryClient.invalidateQueries({ queryKey: ['threads', 'search'] })
       await queryClient.invalidateQueries({ queryKey: ['categories'] })
@@ -125,17 +109,17 @@ export function HomeFeed({ username }: HomeFeedProps) {
       await queryClient.invalidateQueries({ queryKey: ['categories'] })
       const target = variables.target ?? 'new'
       if (target === 'edit') {
-        setEditingThreadCategories((prev) =>
+        threadActions.setEditingThreadCategories((prev) =>
           prev.includes(created.name) ? prev : [...prev, created.name],
         )
-        setEditingCategoryInput('')
-        setIsAddingEditingCategory(false)
+        threadActions.setEditingCategoryInput('')
+        threadActions.setIsAddingEditingCategory(false)
       } else {
-        setNewThreadCategories((prev) =>
+        threadActions.setNewThreadCategories((prev) =>
           prev.includes(created.name) ? prev : [...prev, created.name],
         )
-        setNewCategoryInput('')
-        setIsAddingNewCategory(false)
+        threadActions.setNewCategoryInput('')
+        threadActions.setIsAddingNewCategory(false)
       }
     },
   })
@@ -160,10 +144,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
     }) => addEntry(threadId, body, parentEntryId),
     onSuccess: async (_, variables) => {
       if (variables.parentEntryId) {
-        updateReplyDraft(variables.parentEntryId as string, '')
-        cancelReply()
+        replyActions.updateReplyDraft(variables.parentEntryId as string, '')
+        replyActions.cancelReply()
       } else {
-        updateEntryDraft(variables.threadId, '')
+        entryActions.updateEntryDraft(variables.threadId, '')
       }
       await queryClient.invalidateQueries({ queryKey: ['threads', 'feed'] })
       await queryClient.invalidateQueries({ queryKey: ['threads', 'search'] })
@@ -180,12 +164,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
     toggleEntryMuteMutation,
     hideEntryMutation,
   } = useThreadActions({
-    invalidateTargets: ['feed', 'search', 'hiddenThreads', 'hiddenEntries'],
+    invalidateTargets: THREAD_LIST_INVALIDATIONS,
     onThreadUpdated: (threadId) => {
       if (editingThreadId !== threadId) {
         return
       }
-      cancelEditThread()
+      threadActions.cancelEditThread()
     },
     onThreadHidden: (threadId) => {
       queryClient.setQueryData(['threads', 'feed'], (data) => {
@@ -229,7 +213,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
     },
     onEntryUpdated: (entryId, body) => {
       if (editingEntryId === entryId) {
-        cancelEntryEdit()
+        entryActions.cancelEntryEdit()
       }
       queryClient.setQueryData(['threads', 'feed'], (data) => {
         if (!Array.isArray(data)) {
@@ -259,13 +243,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
   const deleteCategoryMutation = useMutation({
     mutationFn: ({ id }: { id: string; name: string }) => deleteCategory(id),
     onSuccess: async (_, variables) => {
-      setSelectedCategories((prev) => prev.filter((item) => item !== variables.name))
+      threadActions.setSelectedCategories((prev) => prev.filter((item) => item !== variables.name))
       await queryClient.invalidateQueries({ queryKey: ['categories'] })
       await queryClient.invalidateQueries({ queryKey: ['threads', 'feed'] })
       await queryClient.invalidateQueries({ queryKey: ['threads', 'search'] })
     },
   })
-
 
   const filteredThreads = useMemo(() => {
     const data = normalizedSearchQuery ? searchThreadsQuery.data ?? [] : threadsQuery.data ?? []
@@ -333,7 +316,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   : 'border-gray-300 text-gray-700'
               }`}
               type="button"
-              onClick={() => setActiveComposerTab('new')}
+              onClick={() => uiActions.setActiveComposerTab('new')}
             >
               {t('home.newThread')}
             </button>
@@ -344,7 +327,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   : 'border-gray-300 text-gray-700'
               }`}
               type="button"
-              onClick={() => setActiveComposerTab('search')}
+              onClick={() => uiActions.setActiveComposerTab('search')}
             >
               {t('home.searchTab')}
             </button>
@@ -368,7 +351,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
               className="min-h-[96px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
               placeholder={t('home.threadBodyPlaceholder')}
               value={threadBody}
-              onChange={(event) => setThreadBody(event.target.value)}
+              onChange={(event) => threadActions.setThreadBody(event.target.value)}
               onInput={handleTextareaInput}
               data-autoresize="true"
               ref={(element) => resizeTextarea(element)}
@@ -387,7 +370,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                       }`}
                       type="button"
                       onClick={() => {
-                        setNewThreadCategories((prev) =>
+                        threadActions.setNewThreadCategories((prev) =>
                           isSelected
                             ? prev.filter((item) => item !== category.name)
                             : [...prev, category.name],
@@ -409,12 +392,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     addLabel={t('home.addCategory')}
                     cancelLabel={t('home.cancel')}
                     disabled={createCategoryMutation.isPending}
-                    onOpen={() => setIsAddingNewCategory(true)}
-                    onValueChange={setNewCategoryInput}
+                    onOpen={() => threadActions.setIsAddingNewCategory(true)}
+                    onValueChange={threadActions.setNewCategoryInput}
                     onSubmit={() => submitCategory('new')}
                     onCancel={() => {
-                      setNewCategoryInput('')
-                      setIsAddingNewCategory(false)
+                      threadActions.setNewCategoryInput('')
+                      threadActions.setIsAddingNewCategory(false)
                     }}
                   />
                 </div>
@@ -435,13 +418,13 @@ export function HomeFeed({ username }: HomeFeedProps) {
                 className="w-full rounded-md border border-gray-300 px-6 py-2 pr-12 text-sm"
                 placeholder={t('home.searchPlaceholder')}
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => uiActions.setSearchQuery(event.target.value)}
               />
               {searchQuery && (
                 <button
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 hover:text-gray-700"
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => uiActions.setSearchQuery('')}
                   aria-label="Clear search"
                 >
                   ×
@@ -515,14 +498,14 @@ export function HomeFeed({ username }: HomeFeedProps) {
               deleteCategory: t('home.deleteCategory'),
             }}
             onToggleUncategorized={() => {
-              setSelectedCategories((prev) =>
+              threadActions.setSelectedCategories((prev) =>
                 prev.includes(UNCATEGORIZED_TOKEN)
                   ? prev.filter((item) => item !== UNCATEGORIZED_TOKEN)
                   : [...prev, UNCATEGORIZED_TOKEN],
               )
             }}
             onToggleCategory={(name) => {
-              setSelectedCategories((prev) =>
+              threadActions.setSelectedCategories((prev) =>
                 prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name],
               )
             }}
@@ -592,15 +575,15 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   isAddEntryPending: addEntryMutation.isPending,
                 }}
                 actions={{
-                  onStartEdit: () => startEditThread(thread),
-                  onCancelEdit: cancelEditThread,
-                  onEditingThreadBodyChange: setEditingThreadBody,
-                  onEditingCategoryToggle: toggleEditingCategory,
-                  onEditingCategoryInputChange: setEditingCategoryInput,
-                  onEditingCategoryOpen: () => setIsAddingEditingCategory(true),
+                  onStartEdit: () => threadActions.startEditThread(thread),
+                  onCancelEdit: threadActions.cancelEditThread,
+                  onEditingThreadBodyChange: threadActions.setEditingThreadBody,
+                  onEditingCategoryToggle: threadActions.toggleEditingCategory,
+                  onEditingCategoryInputChange: threadActions.setEditingCategoryInput,
+                  onEditingCategoryOpen: () => threadActions.setIsAddingEditingCategory(true),
                   onEditingCategoryCancel: () => {
-                    setEditingCategoryInput('')
-                    setIsAddingEditingCategory(false)
+                    threadActions.setEditingCategoryInput('')
+                    threadActions.setIsAddingEditingCategory(false)
                   },
                   onEditingCategorySubmit: () => submitCategory('edit'),
                   onSaveEdit: () =>
@@ -627,9 +610,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     })
                   },
                   onHide: () => hideThreadMutation.mutate(thread.id),
-                  onEntryEditStart: (entryId, body) => startEntryEdit({ id: entryId, body }),
-                  onEntryEditChange: setEditingEntryBody,
-                  onEntryEditCancel: cancelEntryEdit,
+                  onEntryEditStart: (entryId, body) =>
+                    entryActions.startEntryEdit({ id: entryId, body }),
+                  onEntryEditChange: entryActions.setEditingEntryBody,
+                  onEntryEditCancel: entryActions.cancelEntryEdit,
                   onEntryEditSave: (entryId) => {
                     if (!editingEntryBody.trim()) {
                       return
@@ -646,9 +630,9 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     toggleEntryMuteMutation.mutate({ entryId, body })
                   },
                   onEntryHide: (entryId) => hideEntryMutation.mutate(entryId),
-                  onReplyStart: (entryId) => startReply(entryId),
-                  onReplyChange: (entryId, value) => updateReplyDraft(entryId, value),
-                  onReplyCancel: cancelReply,
+                  onReplyStart: (entryId) => replyActions.startReply(entryId),
+                  onReplyChange: (entryId, value) => replyActions.updateReplyDraft(entryId, value),
+                  onReplyCancel: replyActions.cancelReply,
                   onReplySubmit: (entryId) => {
                     const body = replyDrafts[entryId]?.trim()
                     if (!body) {
@@ -660,7 +644,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                       parentEntryId: entryId,
                     })
                   },
-                  onNewEntryChange: (value) => updateEntryDraft(thread.id, value),
+                  onNewEntryChange: (value) => entryActions.updateEntryDraft(thread.id, value),
                   onNewEntrySubmit: () => {
                     const body = entryDrafts[thread.id]?.trim()
                     if (!body) {

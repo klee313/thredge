@@ -11,14 +11,14 @@ import {
 } from '../lib/api'
 import { useTextareaAutosize } from '../hooks/useTextareaAutosize'
 import { useThreadActions } from '../hooks/useThreadActions'
+import { THREAD_DETAIL_INVALIDATIONS } from '../hooks/threadActionPresets'
+import { EntryCard } from '../components/home/EntryCard'
 import { useThreadDetailState } from '../hooks/useThreadDetailState'
 import { buildEntryDepthMap } from '../lib/entryDepth'
 import { deriveTitleFromBody, getBodyWithoutTitle } from '../lib/threadText'
 import { isMutedText, stripMutedText, toggleMutedText } from '../lib/mutedText'
 import { CategoryInlineCreator } from '../components/CategoryInlineCreator'
-import pinIcon from '../assets/pin.svg'
-import pinFilledIcon from '../assets/pin-filled.svg'
-import eraserIcon from '../assets/eraser.svg'
+import { ThreadCardHeader } from '../components/home/ThreadCardHeader'
 
 export function ThreadDetailPage() {
   const { t } = useTranslation()
@@ -123,7 +123,7 @@ export function ThreadDetailPage() {
     hideEntryMutation,
   } = useThreadActions({
     threadId: id ?? undefined,
-    invalidateTargets: ['feed', 'thread', 'hiddenThreads', 'hiddenEntries'],
+    invalidateTargets: THREAD_DETAIL_INVALIDATIONS,
     onThreadUpdated: () => {
       if (!isEditingThread) {
         return
@@ -195,94 +195,40 @@ export function ThreadDetailPage() {
         {threadQuery.isError && <div className="text-sm text-red-600">{t('thread.error')}</div>}
         {threadQuery.data && (
           <>
-            <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                    threadQuery.data.pinned
-                      ? 'border-gray-900 text-gray-900'
-                      : 'border-gray-200 text-gray-400'
-                  }`}
-                  type="button"
-                  onClick={() => {
-                    if (threadQuery.data.pinned) {
-                      unpinThreadMutation.mutate(threadQuery.data.id)
-                    } else {
-                      pinThreadMutation.mutate(threadQuery.data.id)
-                    }
-                  }}
-                  disabled={pinThreadMutation.isPending || unpinThreadMutation.isPending}
-                  aria-label={threadQuery.data.pinned ? t('home.unpin') : t('home.pin')}
-                >
-                  <img
-                    className="h-3.5 w-3.5"
-                    src={threadQuery.data.pinned ? pinFilledIcon : pinIcon}
-                    alt=""
-                  />
-                </button>
-                {isEditingThread
-                  ? editingThreadCategories.map((categoryName) => (
-                      <button
-                        key={categoryName}
-                        className="inline-flex rounded-full border border-gray-900 bg-gray-900 px-2 py-0.5 text-xs font-normal text-white"
-                        type="button"
-                        onClick={() => toggleEditingCategory(categoryName)}
-                      >
-                        {categoryName}
-                      </button>
-                    ))
-                  : threadQuery.data.categories.map((category) => (
-                      <span
-                        key={category.id}
-                        className="inline-flex rounded-full border border-gray-200 px-2 py-0.5 text-xs font-normal text-gray-600"
-                      >
-                        {category.name}
-                      </span>
-                    ))}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 text-gray-500"
-                  type="button"
-                  onClick={() => {
-                    startEditThread(threadQuery.data)
-                  }}
-                  aria-label={t('home.edit')}
-                >
-                  <img className="h-3.5 w-3.5" src={eraserIcon} alt="" />
-                </button>
-                <button
-                  className={`rounded-full border px-1 py-0 text-[9px] ${
-                    isMutedText(threadQuery.data.body)
-                      ? 'border-gray-900 bg-gray-900 text-white'
-                      : 'border-gray-200 text-gray-400'
-                  }`}
-                  type="button"
-                  onClick={() => {
-                    if (!threadQuery.data.body) {
-                      return
-                    }
-                    toggleThreadMuteMutation.mutate({
-                      threadId: threadQuery.data.id,
-                      body: toggleMutedText(threadQuery.data.body),
-                      categoryNames: threadQuery.data.categories.map((item) => item.name),
-                    })
-                  }}
-                  aria-label="Toggle strikethrough"
-                >
-                  -
-                </button>
-                <button
-                  className="rounded-full border border-gray-200 px-1 py-0 text-[9px] text-gray-400"
-                  type="button"
-                  onClick={() => hideThreadMutation.mutate(threadQuery.data.id)}
-                  disabled={hideThreadMutation.isPending}
-                  aria-label={t('home.archive')}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
+            <ThreadCardHeader
+              thread={threadQuery.data}
+              isEditing={isEditingThread}
+              editingThreadCategories={editingThreadCategories}
+              isPinPending={pinThreadMutation.isPending}
+              isUnpinPending={unpinThreadMutation.isPending}
+              isHidePending={hideThreadMutation.isPending}
+              labels={{
+                pin: t('home.pin'),
+                unpin: t('home.unpin'),
+                edit: t('home.edit'),
+                archive: t('home.archive'),
+              }}
+              onTogglePin={() => {
+                if (threadQuery.data.pinned) {
+                  unpinThreadMutation.mutate(threadQuery.data.id)
+                } else {
+                  pinThreadMutation.mutate(threadQuery.data.id)
+                }
+              }}
+              onStartEdit={() => startEditThread(threadQuery.data)}
+              onToggleMute={() => {
+                if (!threadQuery.data.body) {
+                  return
+                }
+                toggleThreadMuteMutation.mutate({
+                  threadId: threadQuery.data.id,
+                  body: toggleMutedText(threadQuery.data.body),
+                  categoryNames: threadQuery.data.categories.map((item) => item.name),
+                })
+              }}
+              onHide={() => hideThreadMutation.mutate(threadQuery.data.id)}
+              onEditingCategoryToggle={toggleEditingCategory}
+            />
             <div className="mt-6 pl-3 text-sm font-semibold">
               {(() => {
                 const isThreadBodyMuted = isMutedText(threadQuery.data.body)
@@ -406,165 +352,48 @@ export function ThreadDetailPage() {
               })()
             )}
             <div className="mt-2 space-y-2 sm:mt-6">
-              {threadQuery.data.entries.map((entry) => {
-                const depth = entryDepth.get(entry.id) ?? 1
-                const indentClass = depth === 2 ? 'ml-6' : depth >= 3 ? 'ml-12' : ''
-                return (
-                  <div
-                    key={entry.id}
-                    className={`relative rounded-lg border px-1.5 py-1 shadow-sm sm:px-3 sm:py-2 ${theme.entry} ${indentClass}`}
-                  >
-                    <div className="absolute right-2 top-2 flex items-center gap-1">
-                      <button
-                        className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 text-gray-500"
-                        type="button"
-                        onClick={() => startEntryEdit(entry)}
-                        aria-label={t('home.edit')}
-                      >
-                        <img className="h-3.5 w-3.5" src={eraserIcon} alt="" />
-                      </button>
-                      <button
-                        className={`rounded-full border px-1 py-0 text-[8px] ${
-                          isMutedText(entry.body)
-                            ? 'border-gray-900 bg-gray-900 text-white'
-                            : 'border-gray-200 text-gray-400'
-                        }`}
-                        type="button"
-                        onClick={() => {
-                          if (!entry.body) {
-                            return
-                          }
-                          toggleEntryMuteMutation.mutate({
-                            entryId: entry.id,
-                            body: toggleMutedText(entry.body),
-                          })
-                        }}
-                        aria-label="Toggle strikethrough"
-                      >
-                        -
-                      </button>
-                      <button
-                        className="rounded-full border border-gray-200 px-1 py-0 text-[8px] text-gray-400"
-                        type="button"
-                        onClick={() => hideEntryMutation.mutate(entry.id)}
-                        disabled={hideEntryMutation.isPending}
-                        aria-label={t('home.archive')}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    {editingEntryId === entry.id ? (
-                      <form
-                        className="space-y-2"
-                        onSubmit={(event) => {
-                          event.preventDefault()
-                          if (!editingEntryBody.trim()) {
-                            return
-                          }
-                          updateEntryMutation.mutate({
-                            entryId: entry.id,
-                            body: editingEntryBody,
-                          })
-                        }}
-                      >
-                        <textarea
-                          className="min-h-[72px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
-                          value={editingEntryBody}
-                          onChange={(event) => setEditingEntryBody(event.target.value)}
-                          onInput={handleTextareaInput}
-                          data-autoresize="true"
-                          ref={(element) => resizeTextarea(element)}
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white"
-                            type="submit"
-                            disabled={updateEntryMutation.isPending}
-                          >
-                            {t('home.save')}
-                          </button>
-                          <button
-                            className="rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700"
-                            type="button"
-                            onClick={cancelEntryEdit}
-                          >
-                            {t('home.cancel')}
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        <div
-                          className={`text-sm ${
-                            isMutedText(entry.body)
-                              ? 'text-gray-400 line-through'
-                              : 'text-gray-800'
-                          }`}
-                        >
-                          {isMutedText(entry.body) ? stripMutedText(entry.body) : entry.body}
-                        </div>
-                        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-                          <span>
-                            {formatDistanceToNow(new Date(entry.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {depth < 3 && (
-                              <button
-                                className="rounded-md border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700"
-                                type="button"
-                                onClick={() => startReply(entry.id)}
-                              >
-                                {t('home.reply')}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {activeReplyId === entry.id && depth < 3 && (
-                      <form
-                        className="mt-1 space-y-2 sm:mt-2"
-                        onSubmit={(event) => {
-                          event.preventDefault()
-                          const body = replyDrafts[entry.id]?.trim()
-                          if (!body) {
-                            return
-                          }
-                          entryMutation.mutate({ body, parentEntryId: entry.id })
-                        }}
-                      >
-                        <textarea
-                          className="min-h-[64px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
-                          placeholder={t('home.replyPlaceholder')}
-                          value={replyDrafts[entry.id] ?? ''}
-                          onChange={(event) => updateReplyDraft(entry.id, event.target.value)}
-                          onInput={handleTextareaInput}
-                          data-autoresize="true"
-                          ref={(element) => resizeTextarea(element)}
-                        />
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white"
-                            type="submit"
-                            disabled={entryMutation.isPending}
-                          >
-                            {t('home.reply')}
-                          </button>
-                          <button
-                            className="rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700"
-                            type="button"
-                            onClick={cancelReply}
-                          >
-                            {t('home.cancel')}
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                  </div>
-                )
-              })}
+              {threadQuery.data.entries.map((entry) => (
+                <EntryCard
+                  key={entry.id}
+                  entry={entry}
+                  depth={entryDepth.get(entry.id) ?? 1}
+                  themeEntryClass={theme.entry}
+                  highlightQuery=""
+                  isEditing={editingEntryId === entry.id}
+                  editingBody={editingEntryBody}
+                  isReplyActive={activeReplyId === entry.id}
+                  replyDraft={replyDrafts[entry.id] ?? ''}
+                  isEntryUpdatePending={updateEntryMutation.isPending}
+                  isEntryHidePending={hideEntryMutation.isPending}
+                  isEntryToggleMutePending={toggleEntryMuteMutation.isPending}
+                  isReplyPending={entryMutation.isPending}
+                  onEditStart={() => startEntryEdit(entry)}
+                  onEditChange={setEditingEntryBody}
+                  onEditCancel={cancelEntryEdit}
+                  onEditSave={() =>
+                    updateEntryMutation.mutate({
+                      entryId: entry.id,
+                      body: editingEntryBody,
+                    })
+                  }
+                  onToggleMute={(nextBody) =>
+                    toggleEntryMuteMutation.mutate({ entryId: entry.id, body: nextBody })
+                  }
+                  onHide={() => hideEntryMutation.mutate(entry.id)}
+                  onReplyStart={() => startReply(entry.id)}
+                  onReplyChange={(value) => updateReplyDraft(entry.id, value)}
+                  onReplyCancel={cancelReply}
+                  onReplySubmit={() => {
+                    const body = replyDrafts[entry.id]?.trim()
+                    if (!body) {
+                      return
+                    }
+                    entryMutation.mutate({ body, parentEntryId: entry.id })
+                  }}
+                  handleTextareaInput={handleTextareaInput}
+                  resizeTextarea={resizeTextarea}
+                />
+              ))}
               {threadQuery.data.entries.length === 0 && (
                 <div className="text-sm text-gray-600">{t('thread.empty')}</div>
               )}

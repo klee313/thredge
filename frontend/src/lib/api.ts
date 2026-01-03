@@ -31,83 +31,70 @@ export type ThreadDetail = {
   entries: EntryDetail[]
 }
 
-export async function fetchBackendHealth(): Promise<BackendHealth> {
-  const response = await fetch(`${API_BASE_URL}/api/health`, {
+const requestJson = async <T>(
+  path: string,
+  init: RequestInit,
+  errorLabel: string,
+): Promise<T> => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: 'include',
+    ...init,
   })
   if (!response.ok) {
-    throw new Error(`Backend health failed: ${response.status}`)
+    throw new Error(`${errorLabel}: ${response.status}`)
   }
-  return (await response.json()) as BackendHealth
+  return (await response.json()) as T
+}
+
+const requestEmpty = async (path: string, init: RequestInit, errorLabel: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: 'include',
+    ...init,
+  })
+  if (!response.ok) {
+    throw new Error(`${errorLabel}: ${response.status}`)
+  }
+}
+
+export async function fetchBackendHealth(): Promise<BackendHealth> {
+  return requestJson('/api/health', {}, 'Backend health failed')
 }
 
 export async function fetchMe(): Promise<AuthUser> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Auth check failed: ${response.status}`)
-  }
-  return (await response.json()) as AuthUser
+  return requestJson('/api/auth/me', {}, 'Auth check failed')
 }
 
 export async function login(username: string, password: string): Promise<AuthUser> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  return requestJson('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ username, password }),
-  })
-  if (!response.ok) {
-    throw new Error(`Login failed: ${response.status}`)
-  }
-  return (await response.json()) as AuthUser
+  }, 'Login failed')
 }
 
 export async function logout(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+  return requestEmpty('/api/auth/logout', {
     method: 'POST',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Logout failed: ${response.status}`)
-  }
+  }, 'Logout failed')
 }
 
 export async function fetchThreads(): Promise<ThreadSummary[]> {
-  const response = await fetch(`${API_BASE_URL}/api/threads`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Threads fetch failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary[]
+  return requestJson('/api/threads', {}, 'Threads fetch failed')
 }
 
 export async function createThread(
   body?: string | null,
   categoryNames: string[] = [],
 ): Promise<ThreadSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/threads`, {
+  return requestJson('/api/threads', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ body, categoryNames }),
-  })
-  if (!response.ok) {
-    throw new Error(`Thread create failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary
+  }, 'Thread create failed')
 }
 
 export async function fetchThread(id: string): Promise<ThreadDetail> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${id}?includeHidden=true`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Thread fetch failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadDetail
+  return requestJson(`/api/threads/${id}?includeHidden=true`, {}, 'Thread fetch failed')
 }
 
 export async function addEntry(
@@ -115,39 +102,23 @@ export async function addEntry(
   body: string,
   parentEntryId?: string,
 ): Promise<EntryDetail> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${threadId}/entries`, {
+  return requestJson(`/api/threads/${threadId}/entries`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ body, parentEntryId }),
-  })
-  if (!response.ok) {
-    throw new Error(`Entry create failed: ${response.status}`)
-  }
-  return (await response.json()) as EntryDetail
+  }, 'Entry create failed')
 }
 
 export async function fetchThreadFeed(): Promise<ThreadDetail[]> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/feed`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Thread feed fetch failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadDetail[]
+  return requestJson('/api/threads/feed', {}, 'Thread feed fetch failed')
 }
 
 export async function searchThreads(query: string): Promise<ThreadDetail[]> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/threads/search?query=${encodeURIComponent(query)}`,
-    {
-      credentials: 'include',
-    },
+  return requestJson(
+    `/api/threads/search?query=${encodeURIComponent(query)}`,
+    {},
+    'Thread search failed',
   )
-  if (!response.ok) {
-    throw new Error(`Thread search failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadDetail[]
 }
 
 export async function updateThread(
@@ -155,183 +126,103 @@ export async function updateThread(
   body: string | null,
   categoryNames: string[],
 ): Promise<ThreadSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${id}`, {
+  return requestJson(`/api/threads/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ body, categoryNames }),
-  })
-  if (!response.ok) {
-    throw new Error(`Thread update failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary
+  }, 'Thread update failed')
 }
 
 export async function hideThread(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${id}`, {
+  return requestEmpty(`/api/threads/${id}`, {
     method: 'DELETE',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Thread hide failed: ${response.status}`)
-  }
+  }, 'Thread hide failed')
 }
 
 export async function updateEntry(id: string, body: string): Promise<EntryDetail> {
-  const response = await fetch(`${API_BASE_URL}/api/entries/${id}`, {
+  return requestJson(`/api/entries/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ body }),
-  })
-  if (!response.ok) {
-    throw new Error(`Entry update failed: ${response.status}`)
-  }
-  return (await response.json()) as EntryDetail
+  }, 'Entry update failed')
 }
 
 export async function hideEntry(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/entries/${id}`, {
+  return requestEmpty(`/api/entries/${id}`, {
     method: 'DELETE',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Entry hide failed: ${response.status}`)
-  }
+  }, 'Entry hide failed')
 }
 
 export async function restoreEntry(id: string): Promise<EntryDetail> {
-  const response = await fetch(`${API_BASE_URL}/api/entries/${id}/restore`, {
+  return requestJson(`/api/entries/${id}/restore`, {
     method: 'PATCH',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Entry restore failed: ${response.status}`)
-  }
-  return (await response.json()) as EntryDetail
+  }, 'Entry restore failed')
 }
 
 export async function fetchHiddenEntries(): Promise<EntryDetail[]> {
-  const response = await fetch(`${API_BASE_URL}/api/entries/hidden`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Hidden entries fetch failed: ${response.status}`)
-  }
-  return (await response.json()) as EntryDetail[]
+  return requestJson('/api/entries/hidden', {}, 'Hidden entries fetch failed')
 }
 
 export async function searchHiddenEntries(query: string): Promise<EntryDetail[]> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/entries/hidden/search?query=${encodeURIComponent(query)}`,
-    {
-      credentials: 'include',
-    },
+  return requestJson(
+    `/api/entries/hidden/search?query=${encodeURIComponent(query)}`,
+    {},
+    'Hidden entries search failed',
   )
-  if (!response.ok) {
-    throw new Error(`Hidden entries search failed: ${response.status}`)
-  }
-  return (await response.json()) as EntryDetail[]
 }
 
 export async function fetchHiddenThreads(): Promise<ThreadSummary[]> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/hidden`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Hidden threads fetch failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary[]
+  return requestJson('/api/threads/hidden', {}, 'Hidden threads fetch failed')
 }
 
 export async function searchHiddenThreads(query: string): Promise<ThreadSummary[]> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/threads/hidden/search?query=${encodeURIComponent(query)}`,
-    {
-      credentials: 'include',
-    },
+  return requestJson(
+    `/api/threads/hidden/search?query=${encodeURIComponent(query)}`,
+    {},
+    'Hidden threads search failed',
   )
-  if (!response.ok) {
-    throw new Error(`Hidden threads search failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary[]
 }
 
 export async function restoreThread(id: string): Promise<ThreadSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${id}/restore`, {
+  return requestJson(`/api/threads/${id}/restore`, {
     method: 'POST',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Thread restore failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary
+  }, 'Thread restore failed')
 }
 
 export async function pinThread(id: string): Promise<ThreadSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${id}/pin`, {
+  return requestJson(`/api/threads/${id}/pin`, {
     method: 'POST',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Thread pin failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary
+  }, 'Thread pin failed')
 }
 
 export async function unpinThread(id: string): Promise<ThreadSummary> {
-  const response = await fetch(`${API_BASE_URL}/api/threads/${id}/unpin`, {
+  return requestJson(`/api/threads/${id}/unpin`, {
     method: 'POST',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Thread unpin failed: ${response.status}`)
-  }
-  return (await response.json()) as ThreadSummary
+  }, 'Thread unpin failed')
 }
 
 export async function fetchCategories(): Promise<CategorySummary[]> {
-  const response = await fetch(`${API_BASE_URL}/api/categories`, {
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Categories fetch failed: ${response.status}`)
-  }
-  return (await response.json()) as CategorySummary[]
+  return requestJson('/api/categories', {}, 'Categories fetch failed')
 }
 
 export async function createCategory(name: string): Promise<CategorySummary> {
-  const response = await fetch(`${API_BASE_URL}/api/categories`, {
+  return requestJson('/api/categories', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ name }),
-  })
-  if (!response.ok) {
-    throw new Error(`Category create failed: ${response.status}`)
-  }
-  return (await response.json()) as CategorySummary
+  }, 'Category create failed')
 }
 
 export async function updateCategory(id: string, name: string): Promise<CategorySummary> {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
+  return requestJson(`/api/categories/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ name }),
-  })
-  if (!response.ok) {
-    throw new Error(`Category update failed: ${response.status}`)
-  }
-  return (await response.json()) as CategorySummary
+  }, 'Category update failed')
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
+  return requestEmpty(`/api/categories/${id}`, {
     method: 'DELETE',
-    credentials: 'include',
-  })
-  if (!response.ok) {
-    throw new Error(`Category delete failed: ${response.status}`)
-  }
+  }, 'Category delete failed')
 }

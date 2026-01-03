@@ -5,11 +5,8 @@ import type { CategorySummary, ThreadDetail } from '../../lib/api'
 import { highlightMatches } from '../../lib/highlightMatches'
 import { deriveTitleFromBody, getBodyWithoutTitle } from '../../lib/threadText'
 import { isMutedText, stripMutedText } from '../../lib/mutedText'
-import { CategoryInlineCreator } from '../CategoryInlineCreator'
-import pinIcon from '../../assets/pin.svg'
-import pinFilledIcon from '../../assets/pin-filled.svg'
-import eraserIcon from '../../assets/eraser.svg'
 import { EntryCard } from './EntryCard'
+import { ThreadCardHeader } from './ThreadCardHeader'
 
 type ThreadCardData = {
   thread: ThreadDetail
@@ -150,75 +147,25 @@ export function ThreadCard({ data, ui, actions, helpers }: ThreadCardProps) {
       className={`relative rounded-xl border pl-2 pr-1 pt-8 pb-1 shadow-sm sm:px-6 sm:py-5 ${theme.card}`}
     >
       <div className="pointer-events-none absolute left-0 top-0 h-0.5 w-full rounded-t-xl bg-gray-100" />
-      <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-              thread.pinned ? 'border-gray-900 text-gray-900' : 'border-gray-200 text-gray-400'
-            }`}
-            type="button"
-            onClick={onTogglePin}
-            disabled={isPinPending || isUnpinPending}
-            aria-label={thread.pinned ? t('home.unpin') : t('home.pin')}
-          >
-            <img
-              className="h-3.5 w-3.5"
-              src={thread.pinned ? pinFilledIcon : pinIcon}
-              alt=""
-            />
-          </button>
-          {isEditing
-            ? editingThreadCategories.map((categoryName) => (
-                <button
-                  key={categoryName}
-                  className="inline-flex rounded-full border border-gray-900 bg-gray-900 px-2 py-0.5 text-xs font-normal text-white"
-                  type="button"
-                  onClick={() => onEditingCategoryToggle(categoryName)}
-                >
-                  {categoryName}
-                </button>
-              ))
-            : thread.categories.map((category) => (
-                <span
-                  key={category.id}
-                  className="inline-flex rounded-full border border-gray-200 px-2 py-0.5 text-xs font-normal text-gray-600"
-                >
-                  {category.name}
-                </span>
-              ))}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 text-gray-500"
-            type="button"
-            onClick={onStartEdit}
-            aria-label={t('home.edit')}
-          >
-            <img className="h-3.5 w-3.5" src={eraserIcon} alt="" />
-          </button>
-          <button
-            className={`rounded-full border px-1 py-0 text-[9px] ${
-              isMutedText(thread.body)
-                ? 'border-gray-900 bg-gray-900 text-white'
-                : 'border-gray-200 text-gray-400'
-            }`}
-            type="button"
-            onClick={onToggleMute}
-            aria-label="Toggle strikethrough"
-          >
-            -
-          </button>
-          <button
-            className="rounded-full border border-gray-200 px-1 py-0 text-[9px] text-gray-400"
-            type="button"
-            onClick={onHide}
-            disabled={isHidePending}
-            aria-label={t('home.archive')}
-          >
-            ×
-          </button>
-        </div>
-      </div>
+      <ThreadCardHeader
+        thread={thread}
+        isEditing={isEditing}
+        editingThreadCategories={editingThreadCategories}
+        isPinPending={isPinPending}
+        isUnpinPending={isUnpinPending}
+        isHidePending={isHidePending}
+        labels={{
+          pin: t('home.pin'),
+          unpin: t('home.unpin'),
+          edit: t('home.edit'),
+          archive: t('home.archive'),
+        }}
+        onTogglePin={onTogglePin}
+        onStartEdit={onStartEdit}
+        onToggleMute={onToggleMute}
+        onHide={onHide}
+        onEditingCategoryToggle={onEditingCategoryToggle}
+      />
       <div className="mt-6 pl-3 text-sm font-semibold">
         {isEditing ? (
           <span className={isThreadBodyMuted ? 'text-gray-400 line-through' : 'text-gray-900'}>
