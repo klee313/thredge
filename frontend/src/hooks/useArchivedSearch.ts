@@ -21,16 +21,18 @@ export const useArchivedSearch = <T>({
   const [filter, setFilter] = useState('')
   const debouncedFilter = useDebouncedValue(filter.trim(), debounceMs)
 
-  const baseQuery = useInfiniteQuery({
+  const baseQuery = useInfiniteQuery<PageResponse<T>, Error, { pages: PageResponse<T>[]; pageParams: number[] }, readonly unknown[], number>({
     queryKey,
-    queryFn: ({ pageParam = 0 }) => fetchAll(pageParam),
+    queryFn: ({ pageParam }) => fetchAll(pageParam),
+    initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
     enabled: debouncedFilter.length === 0,
   })
 
-  const searchQuery = useInfiniteQuery({
+  const searchQuery = useInfiniteQuery<PageResponse<T>, Error, { pages: PageResponse<T>[]; pageParams: number[] }, readonly unknown[], number>({
     queryKey: searchKey(debouncedFilter),
-    queryFn: ({ pageParam = 0 }) => search(debouncedFilter, pageParam),
+    queryFn: ({ pageParam }) => search(debouncedFilter, pageParam),
+    initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
     enabled: debouncedFilter.length > 0,
   })

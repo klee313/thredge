@@ -10,12 +10,14 @@ import com.thredge.backend.api.dto.ThreadUpdateRequest
 import com.thredge.backend.service.ThreadService
 import com.thredge.backend.support.AuthSupport
 import com.thredge.backend.support.PagingDefaults
-import jakarta.validation.Valid
 import com.thredge.backend.support.ValidationMessages
-import jakarta.validation.constraints.NotBlank
+import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
+import java.time.LocalDate
 import org.springframework.data.domain.PageRequest
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -32,14 +34,17 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/threads")
 @Validated
 class ThreadController(
-    private val threadService: ThreadService,
-    private val authSupport: AuthSupport,
+        private val threadService: ThreadService,
+        private val authSupport: AuthSupport,
 ) {
     @GetMapping
     fun list(
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.THREAD_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.THREAD_MAX_SIZE)
+            size: Int,
+            authentication: Authentication?,
     ): PageResponse<ThreadSummary> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.list(ownerUsername, PageRequest.of(page, size))
@@ -47,20 +52,30 @@ class ThreadController(
 
     @GetMapping("/feed")
     fun feed(
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.THREAD_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.THREAD_MAX_SIZE)
+            size: Int,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            date: LocalDate?,
+            @RequestParam(required = false) categoryIds: List<String>?,
+            authentication: Authentication?,
     ): PageResponse<ThreadDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)
-        return threadService.feed(ownerUsername, PageRequest.of(page, size))
+        return threadService.feed(ownerUsername, PageRequest.of(page, size), date, categoryIds)
     }
 
     @GetMapping("/search")
     fun searchThreads(
-        @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.THREAD_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.THREAD_MAX_SIZE)
+            size: Int,
+            authentication: Authentication?,
     ): PageResponse<ThreadDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.searchThreads(ownerUsername, query, PageRequest.of(page, size))
@@ -68,9 +83,12 @@ class ThreadController(
 
     @GetMapping("/hidden")
     fun listHidden(
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.THREAD_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.THREAD_MAX_SIZE)
+            size: Int,
+            authentication: Authentication?,
     ): PageResponse<ThreadSummary> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.listHidden(ownerUsername, PageRequest.of(page, size))
@@ -78,10 +96,13 @@ class ThreadController(
 
     @GetMapping("/hidden/search")
     fun searchHiddenThreads(
-        @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.THREAD_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.THREAD_MAX_SIZE)
+            size: Int,
+            authentication: Authentication?,
     ): PageResponse<ThreadSummary> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.searchHidden(ownerUsername, query, PageRequest.of(page, size))
@@ -89,8 +110,8 @@ class ThreadController(
 
     @PostMapping
     fun createThread(
-        @Valid @RequestBody request: ThreadCreateRequest,
-        authentication: Authentication?,
+            @Valid @RequestBody request: ThreadCreateRequest,
+            authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.createThread(ownerUsername, request)
@@ -98,9 +119,9 @@ class ThreadController(
 
     @GetMapping("/{id}")
     fun getThread(
-        @PathVariable id: String,
-        @RequestParam(required = false, defaultValue = "false") includeHidden: Boolean,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            @RequestParam(required = false, defaultValue = "false") includeHidden: Boolean,
+            authentication: Authentication?,
     ): ThreadDetail {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.getThread(ownerUsername, id, includeHidden)
@@ -108,9 +129,9 @@ class ThreadController(
 
     @PatchMapping("/{id}")
     fun updateThread(
-        @PathVariable id: String,
-        @Valid @RequestBody request: ThreadUpdateRequest,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            @Valid @RequestBody request: ThreadUpdateRequest,
+            authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.updateThread(ownerUsername, id, request)
@@ -118,8 +139,8 @@ class ThreadController(
 
     @DeleteMapping("/{id}")
     fun hideThread(
-        @PathVariable id: String,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            authentication: Authentication?,
     ): Map<String, String> {
         val ownerUsername = authSupport.requireUsername(authentication)
         threadService.hideThread(ownerUsername, id)
@@ -128,8 +149,8 @@ class ThreadController(
 
     @PostMapping("/{id}/restore")
     fun restoreThread(
-        @PathVariable id: String,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.restoreThread(ownerUsername, id)
@@ -137,8 +158,8 @@ class ThreadController(
 
     @PostMapping("/{id}/pin")
     fun pinThread(
-        @PathVariable id: String,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.pinThread(ownerUsername, id)
@@ -146,8 +167,8 @@ class ThreadController(
 
     @PostMapping("/{id}/unpin")
     fun unpinThread(
-        @PathVariable id: String,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.unpinThread(ownerUsername, id)
@@ -155,9 +176,9 @@ class ThreadController(
 
     @PostMapping("/{id}/entries")
     fun addEntry(
-        @PathVariable id: String,
-        @Valid @RequestBody request: EntryRequest,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            @Valid @RequestBody request: EntryRequest,
+            authentication: Authentication?,
     ): EntryDetail {
         val ownerUsername = authSupport.requireUsername(authentication)
         return threadService.addEntry(ownerUsername, id, request)

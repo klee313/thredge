@@ -19,6 +19,7 @@ import com.thredge.backend.support.CategoryNameSupport
 import com.thredge.backend.support.IdParser
 import com.thredge.backend.support.NotFoundException
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -26,56 +27,98 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class ThreadService(
-    private val threadRepository: ThreadRepository,
-    private val entryRepository: EntryRepository,
-    private val categoryRepository: CategoryRepository,
-    private val threadMapper: ThreadMapper,
+        private val threadRepository: ThreadRepository,
+        private val entryRepository: EntryRepository,
+        private val categoryRepository: CategoryRepository,
+        private val threadMapper: ThreadMapper,
 ) {
     @Transactional(readOnly = true)
     fun list(ownerUsername: String, pageable: Pageable): PageResponse<ThreadSummary> {
-        val slice = threadRepository.findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(
-            ownerUsername,
-            pageable,
-        )
+        val slice =
+                threadRepository
+                        .findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(
+                                ownerUsername,
+                                pageable,
+                        )
         return PageResponse.from(slice.map(threadMapper::toThreadSummary))
     }
 
     @Transactional(readOnly = true)
-    fun feed(ownerUsername: String, pageable: Pageable): PageResponse<ThreadDetail> {
-        val slice = threadRepository.findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(
-            ownerUsername,
-            pageable,
-        )
+    fun feed(
+            ownerUsername: String,
+            pageable: Pageable,
+            date: LocalDate? = null,
+            categoryIds: List<String>? = null,
+    ): PageResponse<ThreadDetail> {
+        val hasFilter = date != null || !categoryIds.isNullOrEmpty()
+        val slice =
+                if (hasFilter) {
+                    val parsedIds =
+                            categoryIds?.mapNotNull {
+                                runCatching { UUID.fromString(it) }.getOrNull()
+                            }
+                    val includeUncategorized =
+                            categoryIds?.any { it == "__uncategorized__" } ?: false
+                    val filteredIds =
+                            parsedIds?.filter { it.toString() != "__uncategorized__" }?.takeIf {
+                                it.isNotEmpty()
+                            }
+                    threadRepository.findFeedFiltered(
+                            ownerUsername,
+                            date,
+                            filteredIds,
+                            includeUncategorized,
+                            pageable,
+                    )
+                } else {
+                    threadRepository
+                            .findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(
+                                    ownerUsername,
+                                    pageable,
+                            )
+                }
         val details = buildThreadDetails(slice.content)
         return PageResponse(
-            items = details,
-            page = slice.number,
-            size = slice.size,
-            hasNext = slice.hasNext(),
+                items = details,
+                page = slice.number,
+                size = slice.size,
+                hasNext = slice.hasNext(),
         )
     }
 
     @Transactional(readOnly = true)
-    fun searchThreads(ownerUsername: String, query: String, pageable: Pageable): PageResponse<ThreadDetail> {
+    fun searchThreads(
+            ownerUsername: String,
+            query: String,
+            pageable: Pageable
+    ): PageResponse<ThreadDetail> {
         val trimmedQuery = query.trim()
         val slice = threadRepository.searchVisibleThreads(ownerUsername, trimmedQuery, pageable)
         val details = buildThreadDetails(slice.content)
         return PageResponse(
-            items = details,
-            page = slice.number,
-            size = slice.size,
-            hasNext = slice.hasNext(),
+                items = details,
+                page = slice.number,
+                size = slice.size,
+                hasNext = slice.hasNext(),
         )
     }
 
     @Transactional(readOnly = true)
     fun listHidden(ownerUsername: String, pageable: Pageable): PageResponse<ThreadSummary> {
-        val slice = threadRepository.findByOwnerUsernameAndIsHiddenTrueOrderByLastActivityAtDesc(ownerUsername, pageable)
+        val slice =
+                threadRepository.findByOwnerUsernameAndIsHiddenTrueOrderByLastActivityAtDesc(
+                        ownerUsername,
+                        pageable
+                )
         return PageResponse.from(slice.map(threadMapper::toThreadSummary))
     }
 
     @Transactional(readOnly = true)
-    fun searchHidden(ownerUsername: String, query: String, pageable: Pageable): PageResponse<ThreadSummary> {
+    fun searchHidden(
+            ownerUsername: String,
+            query: String,
+            pageable: Pageable
+    ): PageResponse<ThreadSummary> {
         val trimmedQuery = query.trim()
         val slice = threadRepository.searchHiddenThreads(ownerUsername, trimmedQuery, pageable)
         return PageResponse.from(slice.map(threadMapper::toThreadSummary))
@@ -86,13 +129,12 @@ class ThreadService(
         val title = deriveTitle(body)
         val categories = resolveCategories(request.categoryNames, ownerUsername)
         val thread =
-            ThreadEntity(
-                title = title,
-                body = body,
-                ownerUsername = ownerUsername,
-            ).apply {
-                this.categories = categories.toMutableSet()
-            }
+                ThreadEntity(
+                                title = title,
+                                body = body,
+                                ownerUsername = ownerUsername,
+                        )
+                        .apply { this.categories = categories.toMutableSet() }
         val saved = threadRepository.save(thread)
         return threadMapper.toThreadSummary(saved)
     }
@@ -104,7 +146,11 @@ class ThreadService(
     }
 
     @Transactional
-    fun updateThread(ownerUsername: String, id: String, request: ThreadUpdateRequest): ThreadSummary {
+    fun updateThread(
+            ownerUsername: String,
+            id: String,
+            request: ThreadUpdateRequest
+    ): ThreadSummary {
         val thread = findThread(id, ownerUsername)
         val newBody = request.body?.trim()
         if (newBody != null) {
@@ -158,36 +204,38 @@ class ThreadService(
     @Transactional
     fun addEntry(ownerUsername: String, threadId: String, request: EntryRequest): EntryDetail {
         val thread = findThread(threadId, ownerUsername)
-        val parentEntryId = request.parentEntryId?.let {
-            runCatching { UUID.fromString(it) }.getOrElse {
-                throw BadRequestException("Invalid parent entry id.")
-            }
-        }
+        val parentEntryId =
+                request.parentEntryId?.let {
+                    runCatching { UUID.fromString(it) }.getOrElse {
+                        throw BadRequestException("Invalid parent entry id.")
+                    }
+                }
         val parentDepth = parentEntryId?.let { resolveEntryDepth(it, thread.id!!) } ?: 0
         if (parentDepth >= 3) {
             throw BadRequestException("Reply depth limit reached.")
         }
         val entry =
-            entryRepository.save(
-                EntryEntity(
-                    thread = thread,
-                    body = request.body.trim(),
-                    parentEntryId = parentEntryId,
-                ),
-            )
+                entryRepository.save(
+                        EntryEntity(
+                                thread = thread,
+                                body = request.body.trim(),
+                                parentEntryId = parentEntryId,
+                        ),
+                )
         thread.lastActivityAt = Instant.now()
         threadRepository.save(thread)
         return threadMapper.toEntryDetail(entry, null)
     }
 
     private fun findThread(
-        id: String,
-        ownerUsername: String,
-        includeHidden: Boolean = false,
+            id: String,
+            ownerUsername: String,
+            includeHidden: Boolean = false,
     ): ThreadEntity {
         val uuid = IdParser.parseUuid(id, "Invalid thread id.")
-        val thread = threadRepository.findByIdAndOwnerUsername(uuid, ownerUsername)
-            ?: throw NotFoundException("Thread not found.")
+        val thread =
+                threadRepository.findByIdAndOwnerUsername(uuid, ownerUsername)
+                        ?: throw NotFoundException("Thread not found.")
         if (thread.isHidden && !includeHidden) {
             throw NotFoundException("Thread not found.")
         }
@@ -195,11 +243,13 @@ class ThreadService(
     }
 
     private fun resolveCategories(
-        rawNames: List<String>,
-        ownerUsername: String,
+            rawNames: List<String>,
+            ownerUsername: String,
     ): List<CategoryEntity> {
-        val names = CategoryNameSupport.normalizeAll(rawNames)
-            .distinctBy { CategoryNameSupport.key(it) }
+        val names =
+                CategoryNameSupport.normalizeAll(rawNames).distinctBy {
+                    CategoryNameSupport.key(it)
+                }
         if (names.isEmpty()) {
             return emptyList()
         }
@@ -241,12 +291,13 @@ class ThreadService(
             if (!visited.add(currentId)) {
                 throw BadRequestException("Invalid reply chain.")
             }
-        val entry = entryRepository.findById(currentId).orElseThrow {
-            BadRequestException("Parent entry not found.")
-        }
-        if (entry.thread?.id != threadId) {
-            throw BadRequestException("Parent entry mismatch.")
-        }
+            val entry =
+                    entryRepository.findById(currentId).orElseThrow {
+                        BadRequestException("Parent entry not found.")
+                    }
+            if (entry.thread?.id != threadId) {
+                throw BadRequestException("Parent entry mismatch.")
+            }
             currentId = entry.parentEntryId
             if (currentId != null) {
                 depth += 1

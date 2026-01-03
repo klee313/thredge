@@ -8,6 +8,8 @@ export const queryKeys = {
   },
   threads: {
     feed: ['threads', 'feed'] as const,
+    feedFiltered: (date?: string | null, categoryIds?: string[]) =>
+      ['threads', 'feed', { date, categoryIds }] as const,
     searchRoot: threadsSearchRoot,
     search: (query: string) => [...threadsSearchRoot, query] as const,
     hidden: ['threads', 'hidden'] as const,

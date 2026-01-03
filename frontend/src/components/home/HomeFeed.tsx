@@ -7,6 +7,7 @@ import {
   fetchCategoryCounts,
   fetchThreadFeedPage,
   searchThreadsPage,
+  type FeedFilterOptions,
 } from '../../lib/api'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { useTextareaAutosize } from '../../hooks/useTextareaAutosize'
@@ -82,19 +83,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
     isSameCalendarDate,
   } = useDateFilter(i18n.language)
 
-  const threadsQuery = useInfiniteQuery({
-    queryKey: queryKeys.threads.feed,
-    queryFn: ({ pageParam = 0 }) => fetchThreadFeedPage(pageParam),
-    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
-  })
-
-  const searchThreadsQuery = useInfiniteQuery({
-    queryKey: queryKeys.threads.search(normalizedSearchQuery),
-    queryFn: ({ pageParam = 0 }) => searchThreadsPage(normalizedSearchQuery, pageParam),
-    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
-    enabled: Boolean(normalizedSearchQuery),
-  })
-
   const categoriesQuery = useQuery({
     queryKey: queryKeys.categories,
     queryFn: fetchCategories,
@@ -103,6 +91,44 @@ export function HomeFeed({ username }: HomeFeedProps) {
   const categoryCountsQuery = useQuery({
     queryKey: queryKeys.categoriesCounts,
     queryFn: fetchCategoryCounts,
+  })
+
+  // Build filter options for server-side filtering
+  const feedFilters: FeedFilterOptions = useMemo(() => {
+    const filters: FeedFilterOptions = {}
+    if (selectedDate) {
+      filters.date = selectedDate.toISOString().split('T')[0]
+    }
+    if (selectedCategories.length > 0) {
+      // Convert category names to IDs for server filter
+      const categoryMap = new Map(
+        (categoriesQuery.data ?? []).map((c) => [c.name, c.id]),
+      )
+      const ids = selectedCategories.map((name) =>
+        name === UNCATEGORIZED_TOKEN ? name : (categoryMap.get(name) ?? name),
+      )
+      filters.categoryIds = ids
+    }
+    return filters
+  }, [selectedDate, selectedCategories, categoriesQuery.data])
+
+  const hasFilters = Boolean(feedFilters.date || feedFilters.categoryIds?.length)
+
+  const threadsQuery = useInfiniteQuery({
+    queryKey: hasFilters
+      ? queryKeys.threads.feedFiltered(feedFilters.date, feedFilters.categoryIds)
+      : queryKeys.threads.feed,
+    queryFn: ({ pageParam }) => fetchThreadFeedPage(pageParam, undefined, hasFilters ? feedFilters : undefined),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
+  })
+
+  const searchThreadsQuery = useInfiniteQuery({
+    queryKey: queryKeys.threads.search(normalizedSearchQuery),
+    queryFn: ({ pageParam }) => searchThreadsPage(normalizedSearchQuery, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
+    enabled: Boolean(normalizedSearchQuery),
   })
 
   const createThreadMutation = useMutation({
@@ -217,31 +243,38 @@ export function HomeFeed({ username }: HomeFeedProps) {
     return pages.flatMap((page) => page.items)
   }, [searchThreadsQuery.data])
 
+  // When using server-side filtering, just use the data directly
+  // Only apply client-side filtering when searching (search doesn't support filters yet)
   const filteredThreads = useMemo(() => {
-    const data = normalizedSearchQuery ? searchItems : threadItems
-    const dateFiltered = selectedDate
-      ? data.filter((thread) => isSameCalendarDate(new Date(thread.createdAt), selectedDate))
-      : data
-    if (selectedCategories.length === 0) {
-      return dateFiltered
+    if (normalizedSearchQuery) {
+      // Search results still need client-side filtering for now
+      const dateFiltered = selectedDate
+        ? searchItems.filter((thread) => isSameCalendarDate(new Date(thread.createdAt), selectedDate))
+        : searchItems
+      if (selectedCategories.length === 0) {
+        return dateFiltered
+      }
+      const hasUncategorizedSelected = selectedCategories.includes(UNCATEGORIZED_TOKEN)
+      const selectedNormalized = selectedCategories
+        .filter((name) => name !== UNCATEGORIZED_TOKEN)
+        .map((name) => name.trim().toLowerCase())
+      return dateFiltered.filter((thread) => {
+        const threadNames = thread.categories.map((item) => item.name.trim().toLowerCase())
+        const matchesCategory =
+          selectedNormalized.length > 0 && selectedNormalized.some((name) => threadNames.includes(name))
+        const matchesUncategorized = hasUncategorizedSelected && thread.categories.length === 0
+        return matchesCategory || matchesUncategorized
+      })
     }
-    const hasUncategorizedSelected = selectedCategories.includes(UNCATEGORIZED_TOKEN)
-    const selectedNormalized = selectedCategories
-      .filter((name) => name !== UNCATEGORIZED_TOKEN)
-      .map((name) => name.trim().toLowerCase())
-    return dateFiltered.filter((thread) => {
-      const threadNames = thread.categories.map((item) => item.name.trim().toLowerCase())
-      const matchesCategory =
-        selectedNormalized.length > 0 && selectedNormalized.some((name) => threadNames.includes(name))
-      const matchesUncategorized = hasUncategorizedSelected && thread.categories.length === 0
-      return matchesCategory || matchesUncategorized
-    })
+    // Server-side filtering: data is already filtered
+    return threadItems
   }, [
     threadItems,
     searchItems,
     selectedCategories,
     selectedDate,
     normalizedSearchQuery,
+    isSameCalendarDate,
   ])
 
   const entryDepthByThreadId = useMemo(() => {
@@ -265,22 +298,20 @@ export function HomeFeed({ username }: HomeFeedProps) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs font-semibold">
             <button
-              className={`rounded-full border px-3 py-1 transition-all ${
-                activeComposerTab === 'new'
-                  ? uiTokens.button.pillActive
-                  : uiTokens.button.pillInactive
-              }`}
+              className={`rounded-full border px-3 py-1 transition-all ${activeComposerTab === 'new'
+                ? uiTokens.button.pillActive
+                : uiTokens.button.pillInactive
+                }`}
               type="button"
               onClick={() => uiActions.setActiveComposerTab('new')}
             >
               {t('home.newThread')}
             </button>
             <button
-              className={`rounded-full border px-3 py-1 transition-all ${
-                activeComposerTab === 'search'
-                  ? uiTokens.button.pillActive
-                  : uiTokens.button.pillInactive
-              }`}
+              className={`rounded-full border px-3 py-1 transition-all ${activeComposerTab === 'search'
+                ? uiTokens.button.pillActive
+                : uiTokens.button.pillInactive
+                }`}
               type="button"
               onClick={() => uiActions.setActiveComposerTab('search')}
             >
@@ -318,11 +349,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   return (
                     <button
                       key={category.id}
-                      className={`rounded-full border px-3 py-1 text-xs ${
-                        isSelected
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-300 text-gray-700'
-                      }`}
+                      className={`rounded-full border px-3 py-1 text-xs ${isSelected
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-300 text-gray-700'
+                        }`}
                       type="button"
                       onClick={() => {
                         threadActions.setNewThreadCategories((prev) =>
@@ -401,9 +431,9 @@ export function HomeFeed({ username }: HomeFeedProps) {
           <div className="text-sm font-semibold">
             {normalizedSearchQuery
               ? t('home.searchTitle', {
-                  query: normalizedSearchQuery,
-                  count: filteredThreads.length,
-                })
+                query: normalizedSearchQuery,
+                count: filteredThreads.length,
+              })
               : selectedDateLabel
                 ? t('home.threadsTitleForDate', { date: selectedDateLabel })
                 : t('home.threadsTitle')}
@@ -504,7 +534,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   categories: categoriesQuery.data ?? [],
                   normalizedSearchQuery,
                   entryDepth,
-                  linkTo={`/threads/${thread.id}`,
+                  linkTo: `/threads/${thread.id}`,
                 }}
                 ui={{
                   isEditing,

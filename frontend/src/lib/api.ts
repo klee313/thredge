@@ -138,15 +138,26 @@ export async function addEntry(
   }, 'Entry create failed')
 }
 
+export type FeedFilterOptions = {
+  date?: string // YYYY-MM-DD format
+  categoryIds?: string[]
+}
+
 export async function fetchThreadFeedPage(
   page: number,
   size: number = THREAD_PAGE_SIZE,
+  filters?: FeedFilterOptions,
 ): Promise<PageResponse<ThreadDetail>> {
-  return requestJson(
-    buildPagedPath('/api/threads/feed', page, size),
-    {},
-    'Thread feed fetch failed',
-  )
+  let path = buildPagedPath('/api/threads/feed', page, size)
+  if (filters?.date) {
+    path += `&date=${encodeURIComponent(filters.date)}`
+  }
+  if (filters?.categoryIds && filters.categoryIds.length > 0) {
+    filters.categoryIds.forEach((id) => {
+      path += `&categoryIds=${encodeURIComponent(id)}`
+    })
+  }
+  return requestJson(path, {}, 'Thread feed fetch failed')
 }
 
 export async function searchThreadsPage(

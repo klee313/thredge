@@ -1,6 +1,5 @@
 package com.thredge.backend.domain.repository
 
-import com.thredge.backend.domain.entity.EntryEntity
 import com.thredge.backend.domain.entity.ThreadEntity
 import java.util.UUID
 import org.springframework.data.domain.Pageable
@@ -11,24 +10,50 @@ import org.springframework.data.repository.query.Param
 
 interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
     fun findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(
-        ownerUsername: String,
+            ownerUsername: String,
     ): List<ThreadEntity>
     fun findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(
-        ownerUsername: String,
-        pageable: Pageable,
+            ownerUsername: String,
+            pageable: Pageable,
+    ): Slice<ThreadEntity>
+
+    @Query(
+            """
+        select distinct t from ThreadEntity t
+        left join t.categories c
+        where t.ownerUsername = :ownerUsername
+          and t.isHidden = false
+          and (:date is null or cast(t.createdAt as localdate) = :date)
+          and (
+            coalesce(:categoryIds, null) is null
+            or c.id in :categoryIds
+            or (:includeUncategorized = true and t.categories is empty)
+          )
+        order by t.isPinned desc, t.lastActivityAt desc
+        """,
+    )
+    fun findFeedFiltered(
+            @Param("ownerUsername") ownerUsername: String,
+            @Param("date") date: java.time.LocalDate?,
+            @Param("categoryIds") categoryIds: List<java.util.UUID>?,
+            @Param("includeUncategorized") includeUncategorized: Boolean,
+            pageable: Pageable,
     ): Slice<ThreadEntity>
     fun findByOwnerUsernameAndIsHiddenTrueOrderByLastActivityAtDesc(
-        ownerUsername: String,
+            ownerUsername: String,
     ): List<ThreadEntity>
     fun findByOwnerUsernameAndIsHiddenTrueOrderByLastActivityAtDesc(
-        ownerUsername: String,
-        pageable: Pageable,
+            ownerUsername: String,
+            pageable: Pageable,
     ): Slice<ThreadEntity>
-    fun findAllByCategoriesIdAndOwnerUsername(categoryId: UUID, ownerUsername: String): List<ThreadEntity>
+    fun findAllByCategoriesIdAndOwnerUsername(
+            categoryId: UUID,
+            ownerUsername: String
+    ): List<ThreadEntity>
     fun findByIdAndOwnerUsername(id: UUID, ownerUsername: String): ThreadEntity?
 
     @Query(
-        """
+            """
         select distinct t from ThreadEntity t
         left join EntryEntity e on e.thread = t
         where t.ownerUsername = :ownerUsername
@@ -42,13 +67,13 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         """,
     )
     fun searchVisibleThreads(
-        @Param("ownerUsername") ownerUsername: String,
-        @Param("query") query: String,
-        pageable: Pageable,
+            @Param("ownerUsername") ownerUsername: String,
+            @Param("query") query: String,
+            pageable: Pageable,
     ): Slice<ThreadEntity>
 
     @Query(
-        """
+            """
         select distinct t from ThreadEntity t
         left join EntryEntity e on e.thread = t
         where t.ownerUsername = :ownerUsername
@@ -62,13 +87,13 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         """,
     )
     fun searchHiddenThreads(
-        @Param("ownerUsername") ownerUsername: String,
-        @Param("query") query: String,
-        pageable: Pageable,
+            @Param("ownerUsername") ownerUsername: String,
+            @Param("query") query: String,
+            pageable: Pageable,
     ): Slice<ThreadEntity>
 
     @Query(
-        """
+            """
         select c.id as id, count(t.id) as count
         from ThreadEntity t
         join t.categories c
@@ -78,11 +103,11 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         """,
     )
     fun countThreadsByCategory(
-        @Param("ownerUsername") ownerUsername: String,
+            @Param("ownerUsername") ownerUsername: String,
     ): List<CategoryCountView>
 
     @Query(
-        """
+            """
         select count(t.id)
         from ThreadEntity t
         where t.ownerUsername = :ownerUsername
@@ -91,7 +116,7 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         """,
     )
     fun countUncategorizedThreads(
-        @Param("ownerUsername") ownerUsername: String,
+            @Param("ownerUsername") ownerUsername: String,
     ): Long
 }
 

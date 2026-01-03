@@ -1,16 +1,16 @@
 package com.thredge.backend.api
 
 import com.thredge.backend.api.dto.EntryDetail
-import com.thredge.backend.api.dto.PageResponse
 import com.thredge.backend.api.dto.EntryUpdateRequest
+import com.thredge.backend.api.dto.PageResponse
 import com.thredge.backend.service.EntryService
 import com.thredge.backend.support.AuthSupport
 import com.thredge.backend.support.PagingDefaults
-import jakarta.validation.Valid
 import com.thredge.backend.support.ValidationMessages
-import jakarta.validation.constraints.NotBlank
+import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
+import jakarta.validation.constraints.NotBlank
 import org.springframework.data.domain.PageRequest
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
@@ -27,14 +27,17 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/entries")
 @Validated
 class EntryController(
-    private val entryService: EntryService,
-    private val authSupport: AuthSupport,
+        private val entryService: EntryService,
+        private val authSupport: AuthSupport,
 ) {
     @GetMapping("/hidden")
     fun listHidden(
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.ENTRY_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.ENTRY_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.ENTRY_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.ENTRY_MAX_SIZE)
+            size: Int,
+            authentication: Authentication?,
     ): PageResponse<EntryDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return entryService.listHidden(ownerUsername, PageRequest.of(page, size))
@@ -42,10 +45,13 @@ class EntryController(
 
     @GetMapping("/hidden/search")
     fun searchHiddenEntries(
-        @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
-        @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0) page: Int,
-        @RequestParam(defaultValue = "${PagingDefaults.ENTRY_DEFAULT_SIZE}") @Min(1) @Max(PagingDefaults.ENTRY_MAX_SIZE) size: Int,
-        authentication: Authentication?,
+            @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
+            @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
+            @RequestParam(defaultValue = "${PagingDefaults.ENTRY_DEFAULT_SIZE}")
+            @Min(1L)
+            @Max(PagingDefaults.ENTRY_MAX_SIZE)
+            size: Int,
+            authentication: Authentication?,
     ): PageResponse<EntryDetail> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return entryService.searchHidden(ownerUsername, query, PageRequest.of(page, size))
@@ -53,9 +59,9 @@ class EntryController(
 
     @PatchMapping("/{id}")
     fun updateEntry(
-        @PathVariable id: String,
-        @Valid @RequestBody request: EntryUpdateRequest,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            @Valid @RequestBody request: EntryUpdateRequest,
+            authentication: Authentication?,
     ): EntryDetail {
         val ownerUsername = authSupport.requireUsername(authentication)
         return entryService.updateEntry(ownerUsername, id, request)
@@ -63,8 +69,8 @@ class EntryController(
 
     @DeleteMapping("/{id}")
     fun hideEntry(
-        @PathVariable id: String,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            authentication: Authentication?,
     ): Map<String, String> {
         val ownerUsername = authSupport.requireUsername(authentication)
         entryService.hideEntry(ownerUsername, id)
@@ -73,8 +79,8 @@ class EntryController(
 
     @PatchMapping("/{id}/restore")
     fun restoreEntry(
-        @PathVariable id: String,
-        authentication: Authentication?,
+            @PathVariable id: String,
+            authentication: Authentication?,
     ): EntryDetail {
         val ownerUsername = authSupport.requireUsername(authentication)
         return entryService.restoreEntry(ownerUsername, id)
