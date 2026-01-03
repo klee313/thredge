@@ -1,0 +1,132 @@
+import { useState } from 'react'
+import { EntryCard } from '../components/home/EntryCard'
+import { ThreadEditor } from '../components/home/ThreadEditor'
+import { EntryComposer } from '../components/home/EntryComposer'
+import type { CategorySummary, EntryDetail } from '../lib/api'
+import { useTextareaAutosize } from '../hooks/useTextareaAutosize'
+
+export function ComponentLabPage() {
+  const [entryBody, setEntryBody] = useState('Example entry body for preview.')
+  const [replyDraft, setReplyDraft] = useState('Example reply')
+  const [isEditingEntry, setIsEditingEntry] = useState(false)
+  const [isReplyActive, setIsReplyActive] = useState(true)
+  const [editingThreadBody, setEditingThreadBody] = useState('Example thread body')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [categoryInput, setCategoryInput] = useState('')
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+  const { handleTextareaInput, resizeTextarea } = useTextareaAutosize({
+    deps: [entryBody, replyDraft, editingThreadBody],
+  })
+
+  const entry: EntryDetail = {
+    id: 'entry-preview',
+    body: entryBody,
+    parentEntryId: null,
+    createdAt: new Date().toISOString(),
+    threadId: 'thread-preview',
+  }
+  const categories: CategorySummary[] = [
+    { id: 'cat-1', name: 'Planning' },
+    { id: 'cat-2', name: 'Notes' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-lg font-semibold">Component Lab</h1>
+
+      <section className="space-y-2">
+        <div className="text-sm font-semibold">EntryCard</div>
+        <EntryCard
+          data={{
+            entry,
+            depth: 1,
+            themeEntryClass: 'border-gray-100 bg-gray-50',
+            highlightQuery: '',
+          }}
+          ui={{
+            isEditing: isEditingEntry,
+            editingBody: entryBody,
+            isReplyActive,
+            replyDraft,
+            isEntryUpdatePending: false,
+            isEntryHidePending: false,
+            isEntryToggleMutePending: false,
+            isReplyPending: false,
+          }}
+          actions={{
+            onEditStart: () => setIsEditingEntry(true),
+            onEditChange: setEntryBody,
+            onEditCancel: () => setIsEditingEntry(false),
+            onEditSave: () => setIsEditingEntry(false),
+            onToggleMute: setEntryBody,
+            onHide: () => {},
+            onReplyStart: () => setIsReplyActive(true),
+            onReplyChange: setReplyDraft,
+            onReplyCancel: () => setIsReplyActive(false),
+            onReplySubmit: () => setIsReplyActive(false),
+          }}
+          helpers={{
+            handleTextareaInput,
+            resizeTextarea,
+          }}
+        />
+      </section>
+
+      <section className="space-y-2">
+        <div className="text-sm font-semibold">ThreadEditor</div>
+        <ThreadEditor
+          value={editingThreadBody}
+          onChange={setEditingThreadBody}
+          onSave={() => {}}
+          onCancel={() => {}}
+          categories={categories}
+          selectedCategories={selectedCategories}
+          editingCategoryInput={categoryInput}
+          isAddingCategory={isAddingCategory}
+          isCreateCategoryPending={false}
+          isSaving={false}
+          onToggleCategory={(name) =>
+            setSelectedCategories((prev) =>
+              prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name],
+            )
+          }
+          onCategoryInputChange={setCategoryInput}
+          onCategoryOpen={() => setIsAddingCategory(true)}
+          onCategoryCancel={() => {
+            setCategoryInput('')
+            setIsAddingCategory(false)
+          }}
+          onCategorySubmit={() => {
+            if (categoryInput.trim()) {
+              setSelectedCategories((prev) => [...prev, categoryInput.trim()])
+              setCategoryInput('')
+            }
+          }}
+          labels={{
+            save: 'Save',
+            cancel: 'Cancel',
+            categoryPlaceholder: 'New category',
+            addCategory: 'Add',
+            cancelCategory: 'Cancel',
+          }}
+          handleTextareaInput={handleTextareaInput}
+          resizeTextarea={resizeTextarea}
+        />
+      </section>
+
+      <section className="space-y-2">
+        <div className="text-sm font-semibold">EntryComposer</div>
+        <EntryComposer
+          value={entryBody}
+          placeholder="Add a new entry"
+          onChange={setEntryBody}
+          onSubmit={() => {}}
+          isSubmitting={false}
+          labels={{ submit: 'Add entry' }}
+          handleTextareaInput={handleTextareaInput}
+          resizeTextarea={resizeTextarea}
+        />
+      </section>
+    </div>
+  )
+}

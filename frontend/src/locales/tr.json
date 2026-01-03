@@ -6,6 +6,17 @@
     "settings": "Ayarlar",
     "logout": "Çıkış"
   },
+  "common": {
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "loading": "Yükleniyor…",
+    "edit": "Düzenle",
+    "archive": "Arşivle",
+    "reply": "Yanıtla",
+    "replyPlaceholder": "Yanıt yazın",
+    "entryPlaceholder": "Yeni bir girdi ekle",
+    "addEntry": "Girdi ekle"
+  },
   "home": {
     "title": "İş parçacıkları",
     "loginTitle": "Giriş yap",

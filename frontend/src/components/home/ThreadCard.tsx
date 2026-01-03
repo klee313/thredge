@@ -159,8 +159,8 @@ export function ThreadCard({ data, ui, actions, helpers }: ThreadCardProps) {
         labels={{
           pin: t('home.pin'),
           unpin: t('home.unpin'),
-          edit: t('home.edit'),
-          archive: t('home.archive'),
+          edit: t('common.edit'),
+          archive: t('common.archive'),
         }}
         onTogglePin={onTogglePin}
         onStartEdit={onStartEdit}
@@ -202,11 +202,11 @@ export function ThreadCard({ data, ui, actions, helpers }: ThreadCardProps) {
           onCategoryCancel={onEditingCategoryCancel}
           onCategorySubmit={onEditingCategorySubmit}
           labels={{
-            save: t('home.save'),
-            cancel: t('home.cancel'),
+            save: t('common.save'),
+            cancel: t('common.cancel'),
             categoryPlaceholder: t('home.categoryPlaceholder'),
             addCategory: t('home.addCategory'),
-            cancelCategory: t('home.cancel'),
+            cancelCategory: t('common.cancel'),
           }}
           handleTextareaInput={handleTextareaInput}
           resizeTextarea={resizeTextarea}
@@ -269,11 +269,11 @@ export function ThreadCard({ data, ui, actions, helpers }: ThreadCardProps) {
       </div>
       <EntryComposer
         value={newEntryDraft}
-        placeholder={t('home.entryPlaceholder')}
+        placeholder={t('common.entryPlaceholder')}
         onChange={onNewEntryChange}
         onSubmit={onNewEntrySubmit}
         isSubmitting={isAddEntryPending}
-        labels={{ submit: t('home.addEntry'), submitting: t('home.loading') }}
+        labels={{ submit: t('common.addEntry'), submitting: t('common.loading') }}
         handleTextareaInput={handleTextareaInput}
         resizeTextarea={resizeTextarea}
       />

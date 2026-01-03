@@ -40,22 +40,9 @@ export function ThreadDetailPage() {
     isAddingEditingCategory,
   } = state
   const {
-    setEntryBody,
-    setEditingEntryBody,
-    setEditingThreadBody,
-    setEditingThreadCategories,
-    setEditingCategoryInput,
-    setIsAddingEditingCategory,
-    setIsEditingThread,
-    syncThread,
-    startEditThread,
-    cancelEditThread,
-    toggleEditingCategory,
-    startEntryEdit,
-    cancelEntryEdit,
-    startReply,
-    cancelReply,
-    updateReplyDraft,
+    thread: threadActions,
+    entry: entryActions,
+    reply: replyActions,
   } = actions
   const { handleTextareaInput, resizeTextarea } = useTextareaAutosize({
     deps: [editingThreadBody, editingEntryBody, replyDrafts, entryBody],
@@ -75,11 +62,11 @@ export function ThreadDetailPage() {
 
   const { createCategoryMutation } = useCategoryMutations({
     onCreateSuccess: (created) => {
-      setEditingThreadCategories((prev) =>
+      threadActions.setEditingThreadCategories((prev) =>
         prev.includes(created.name) ? prev : [...prev, created.name],
       )
-      setEditingCategoryInput('')
-      setIsAddingEditingCategory(false)
+      threadActions.setEditingCategoryInput('')
+      threadActions.setIsAddingEditingCategory(false)
     },
   })
 
@@ -96,10 +83,10 @@ export function ThreadDetailPage() {
     invalidateTargets: ['thread', 'feed'],
     onEntryCreated: (_created, variables) => {
       if (variables.parentEntryId) {
-        updateReplyDraft(variables.parentEntryId, '')
-        cancelReply()
+        replyActions.updateReplyDraft(variables.parentEntryId, '')
+        replyActions.cancelReply()
       } else {
-        setEntryBody('')
+        entryActions.setEntryBody('')
       }
     },
   })
@@ -120,23 +107,23 @@ export function ThreadDetailPage() {
       if (!isEditingThread) {
         return
       }
-      setIsEditingThread(false)
-      setEditingCategoryInput('')
-      setIsAddingEditingCategory(false)
+      threadActions.setIsEditingThread(false)
+      threadActions.setEditingCategoryInput('')
+      threadActions.setIsAddingEditingCategory(false)
     },
     onThreadHidden: () => {
       navigate('/')
     },
     onEntryUpdated: (entryId, _body) => {
       if (editingEntryId === entryId) {
-        cancelEntryEdit()
+        entryActions.cancelEntryEdit()
       }
     },
   })
 
   useEffect(() => {
     if (threadQuery.data) {
-      syncThread(threadQuery.data)
+      threadActions.syncThread(threadQuery.data)
     }
   }, [threadQuery.data])
 
@@ -197,8 +184,8 @@ export function ThreadDetailPage() {
               labels={{
                 pin: t('home.pin'),
                 unpin: t('home.unpin'),
-                edit: t('home.edit'),
-                archive: t('home.archive'),
+                edit: t('common.edit'),
+                archive: t('common.archive'),
               }}
               onTogglePin={() => {
                 if (threadQuery.data.pinned) {
@@ -207,7 +194,7 @@ export function ThreadDetailPage() {
                   pinThreadMutation.mutate(threadQuery.data.id)
                 }
               }}
-              onStartEdit={() => startEditThread(threadQuery.data)}
+              onStartEdit={() => threadActions.startEditThread(threadQuery.data)}
               onToggleMute={() => {
                 if (!threadQuery.data.body) {
                   return
@@ -219,7 +206,7 @@ export function ThreadDetailPage() {
                 })
               }}
               onHide={() => hideThreadMutation.mutate(threadQuery.data.id)}
-              onEditingCategoryToggle={toggleEditingCategory}
+              onEditingCategoryToggle={threadActions.toggleEditingCategory}
             />
             <div className="mt-6 pl-3 text-sm font-semibold">
               {(() => {
@@ -244,7 +231,7 @@ export function ThreadDetailPage() {
             {isEditingThread ? (
               <ThreadEditor
                 value={editingThreadBody}
-                onChange={setEditingThreadBody}
+                onChange={threadActions.setEditingThreadBody}
                 onSave={() =>
                   updateThreadMutation.mutate({
                     threadId: threadQuery.data.id,
@@ -252,7 +239,7 @@ export function ThreadDetailPage() {
                     categoryNames: editingThreadCategories,
                   })
                 }
-                onCancel={() => cancelEditThread(threadQuery.data)}
+                onCancel={() => threadActions.cancelEditThread(threadQuery.data)}
                 categories={categoriesQuery.data ?? []}
                 selectedCategories={editingThreadCategories}
                 editingCategoryInput={editingCategoryInput}
@@ -260,21 +247,21 @@ export function ThreadDetailPage() {
                 isCreateCategoryPending={createCategoryMutation.isPending}
                 isSaving={updateThreadMutation.isPending}
                 buttonSize="md"
-                onToggleCategory={toggleEditingCategory}
-                onCategoryInputChange={setEditingCategoryInput}
-                onCategoryOpen={() => setIsAddingEditingCategory(true)}
+                onToggleCategory={threadActions.toggleEditingCategory}
+                onCategoryInputChange={threadActions.setEditingCategoryInput}
+                onCategoryOpen={() => threadActions.setIsAddingEditingCategory(true)}
                 onCategoryCancel={() => {
-                  setEditingCategoryInput('')
-                  setIsAddingEditingCategory(false)
+                  threadActions.setEditingCategoryInput('')
+                  threadActions.setIsAddingEditingCategory(false)
                 }}
                 onCategorySubmit={submitCategory}
                 labels={{
-                  save: t('home.save'),
-                  saving: t('home.loading'),
-                  cancel: t('home.cancel'),
+                  save: t('common.save'),
+                  saving: t('common.loading'),
+                  cancel: t('common.cancel'),
                   categoryPlaceholder: t('home.categoryPlaceholder'),
                   addCategory: t('home.addCategory'),
-                  cancelCategory: t('home.cancel'),
+                  cancelCategory: t('common.cancel'),
                 }}
                 handleTextareaInput={handleTextareaInput}
                 resizeTextarea={resizeTextarea}
@@ -320,9 +307,9 @@ export function ThreadDetailPage() {
                     isReplyPending: createEntryMutation.isPending,
                   }}
                   actions={{
-                    onEditStart: () => startEntryEdit(entry),
-                    onEditChange: setEditingEntryBody,
-                    onEditCancel: cancelEntryEdit,
+                    onEditStart: () => entryActions.startEntryEdit(entry),
+                    onEditChange: entryActions.setEditingEntryBody,
+                    onEditCancel: entryActions.cancelEntryEdit,
                     onEditSave: () =>
                       updateEntryMutation.mutate({
                         entryId: entry.id,
@@ -331,9 +318,9 @@ export function ThreadDetailPage() {
                     onToggleMute: (nextBody) =>
                       toggleEntryMuteMutation.mutate({ entryId: entry.id, body: nextBody }),
                     onHide: () => hideEntryMutation.mutate(entry.id),
-                    onReplyStart: () => startReply(entry.id),
-                    onReplyChange: (value) => updateReplyDraft(entry.id, value),
-                    onReplyCancel: cancelReply,
+                    onReplyStart: () => replyActions.startReply(entry.id),
+                    onReplyChange: (value) => replyActions.updateReplyDraft(entry.id, value),
+                    onReplyCancel: replyActions.cancelReply,
                     onReplySubmit: () => {
                       const body = replyDrafts[entry.id]?.trim()
                       if (!body) {
@@ -357,15 +344,15 @@ export function ThreadDetailPage() {
             </div>
             <EntryComposer
               value={entryBody}
-              placeholder={t('home.entryPlaceholder')}
-              onChange={setEntryBody}
+              placeholder={t('common.entryPlaceholder')}
+              onChange={entryActions.setEntryBody}
               onSubmit={() =>
                 createEntryMutation.mutate({
                   body: entryBody,
                 })
               }
               isSubmitting={createEntryMutation.isPending}
-              labels={{ submit: t('home.addEntry'), submitting: t('home.loading') }}
+              labels={{ submit: t('common.addEntry'), submitting: t('common.loading') }}
               handleTextareaInput={handleTextareaInput}
               resizeTextarea={resizeTextarea}
             />

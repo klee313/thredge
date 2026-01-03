@@ -225,6 +225,14 @@ export function HomeFeed({ username }: HomeFeedProps) {
     normalizedSearchQuery,
   ])
 
+  const entryDepthByThreadId = useMemo(() => {
+    const map = new Map<string, Map<string, number>>()
+    filteredThreads.forEach((thread) => {
+      map.set(thread.id, buildEntryDepthMap(thread.entries))
+    })
+    return map
+  }, [filteredThreads])
+
   const buildCategoryCounts = (threads: { categories: { name: string }[] }[]) => {
     const counts = new Map<string, number>()
     let uncategorizedCount = 0
@@ -486,7 +494,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                 entry: 'border-slate-100 bg-slate-50',
               },
             ][index % 3]
-            const entryDepth = buildEntryDepthMap(thread.entries)
+            const entryDepth = entryDepthByThreadId.get(thread.id) ?? new Map()
             const isEditing = editingThreadId === thread.id
 
             return (

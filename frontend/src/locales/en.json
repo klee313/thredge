@@ -6,6 +6,17 @@
     "settings": "Settings",
     "logout": "Log out"
   },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "edit": "Edit",
+    "archive": "Archive",
+    "reply": "Reply",
+    "replyPlaceholder": "Write a reply",
+    "entryPlaceholder": "Add a new entry",
+    "addEntry": "Add entry"
+  },
   "home": {
     "title": "Threads",
     "loginTitle": "Sign in to continue",

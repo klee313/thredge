@@ -94,7 +94,7 @@ export function EntryCard({
           className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 text-gray-500"
           type="button"
           onClick={onEditStart}
-          aria-label={t('home.edit')}
+          aria-label={t('common.edit')}
         >
           <img className="h-3.5 w-3.5" src={eraserIcon} alt="" />
         </button>
@@ -114,7 +114,7 @@ export function EntryCard({
           type="button"
           onClick={onHide}
           disabled={isEntryHidePending}
-          aria-label={t('home.archive')}
+          aria-label={t('common.archive')}
         >
           ×
         </button>
@@ -126,7 +126,7 @@ export function EntryCard({
           onSave={onEditSave}
           onCancel={onEditCancel}
           isSaving={isEntryUpdatePending}
-          labels={{ save: t('home.save'), cancel: t('home.cancel') }}
+          labels={{ save: t('common.save'), cancel: t('common.cancel') }}
           handleTextareaInput={handleTextareaInput}
           resizeTextarea={resizeTextarea}
         />
@@ -150,7 +150,7 @@ export function EntryCard({
                   type="button"
                   onClick={onReplyStart}
                 >
-                  {t('home.reply')}
+                  {t('common.reply')}
                 </button>
               )}
             </div>
@@ -160,12 +160,12 @@ export function EntryCard({
       {isReplyActive && depth < 3 && (
         <ReplyComposer
           value={replyDraft}
-          placeholder={t('home.replyPlaceholder')}
+          placeholder={t('common.replyPlaceholder')}
           onChange={onReplyChange}
           onSubmit={onReplySubmit}
           onCancel={onReplyCancel}
           isSubmitting={isReplyPending}
-          labels={{ submit: t('home.reply'), cancel: t('home.cancel') }}
+          labels={{ submit: t('common.reply'), cancel: t('common.cancel') }}
           handleTextareaInput={handleTextareaInput}
           resizeTextarea={resizeTextarea}
         />
