@@ -11,13 +11,16 @@ import pinFilledIcon from '../../assets/pin-filled.svg'
 import eraserIcon from '../../assets/eraser.svg'
 import { EntryCard } from './EntryCard'
 
-type ThreadCardProps = {
+type ThreadCardData = {
   thread: ThreadDetail
   theme: { card: string; entry: string }
   categories: CategorySummary[]
   normalizedSearchQuery: string
   entryDepth: Map<string, number>
   linkTo: string
+}
+
+type ThreadCardUi = {
   isEditing: boolean
   editingThreadBody: string
   editingThreadCategories: string[]
@@ -38,7 +41,9 @@ type ThreadCardProps = {
   isEntryToggleMutePending: boolean
   isReplyPending: boolean
   isAddEntryPending: boolean
-  t: (key: string, options?: Record<string, unknown>) => string
+}
+
+type ThreadCardActions = {
   onStartEdit: () => void
   onCancelEdit: () => void
   onEditingThreadBodyChange: (value: string) => void
@@ -63,65 +68,79 @@ type ThreadCardProps = {
   onReplySubmit: (entryId: string) => void
   onNewEntryChange: (value: string) => void
   onNewEntrySubmit: () => void
+}
+
+type ThreadCardHelpers = {
+  t: (key: string, options?: Record<string, unknown>) => string
   handleTextareaInput: (event: FormEvent<HTMLTextAreaElement>) => void
   resizeTextarea: (element: HTMLTextAreaElement | null) => void
 }
 
-export function ThreadCard({
-  thread,
-  theme,
-  categories,
-  normalizedSearchQuery,
-  entryDepth,
-  linkTo,
-  isEditing,
-  editingThreadBody,
-  editingThreadCategories,
-  editingCategoryInput,
-  isAddingEditingCategory,
-  editingEntryId,
-  editingEntryBody,
-  activeReplyId,
-  replyDrafts,
-  newEntryDraft,
-  isUpdateThreadPending,
-  isCreateCategoryPending,
-  isPinPending,
-  isUnpinPending,
-  isHidePending,
-  isEntryUpdatePending,
-  isEntryHidePending,
-  isEntryToggleMutePending,
-  isReplyPending,
-  isAddEntryPending,
-  t,
-  onStartEdit,
-  onCancelEdit,
-  onEditingThreadBodyChange,
-  onEditingCategoryToggle,
-  onEditingCategoryInputChange,
-  onEditingCategoryOpen,
-  onEditingCategoryCancel,
-  onEditingCategorySubmit,
-  onSaveEdit,
-  onTogglePin,
-  onToggleMute,
-  onHide,
-  onEntryEditStart,
-  onEntryEditChange,
-  onEntryEditCancel,
-  onEntryEditSave,
-  onEntryToggleMute,
-  onEntryHide,
-  onReplyStart,
-  onReplyChange,
-  onReplyCancel,
-  onReplySubmit,
-  onNewEntryChange,
-  onNewEntrySubmit,
-  handleTextareaInput,
-  resizeTextarea,
-}: ThreadCardProps) {
+type ThreadCardProps = {
+  data: ThreadCardData
+  ui: ThreadCardUi
+  actions: ThreadCardActions
+  helpers: ThreadCardHelpers
+}
+
+export function ThreadCard({ data, ui, actions, helpers }: ThreadCardProps) {
+  const {
+    thread,
+    theme,
+    categories,
+    normalizedSearchQuery,
+    entryDepth,
+    linkTo,
+  } = data
+  const {
+    isEditing,
+    editingThreadBody,
+    editingThreadCategories,
+    editingCategoryInput,
+    isAddingEditingCategory,
+    editingEntryId,
+    editingEntryBody,
+    activeReplyId,
+    replyDrafts,
+    newEntryDraft,
+    isUpdateThreadPending,
+    isCreateCategoryPending,
+    isPinPending,
+    isUnpinPending,
+    isHidePending,
+    isEntryUpdatePending,
+    isEntryHidePending,
+    isEntryToggleMutePending,
+    isReplyPending,
+    isAddEntryPending,
+  } = ui
+  const {
+    onStartEdit,
+    onCancelEdit,
+    onEditingThreadBodyChange,
+    onEditingCategoryToggle,
+    onEditingCategoryInputChange,
+    onEditingCategoryOpen,
+    onEditingCategoryCancel,
+    onEditingCategorySubmit,
+    onSaveEdit,
+    onTogglePin,
+    onToggleMute,
+    onHide,
+    onEntryEditStart,
+    onEntryEditChange,
+    onEntryEditCancel,
+    onEntryEditSave,
+    onEntryToggleMute,
+    onEntryHide,
+    onReplyStart,
+    onReplyChange,
+    onReplyCancel,
+    onReplySubmit,
+    onNewEntryChange,
+    onNewEntrySubmit,
+  } = actions
+  const { t, handleTextareaInput, resizeTextarea } = helpers
   const isThreadBodyMuted = isMutedText(thread.body)
   const rawBody = thread.body ? (isThreadBodyMuted ? stripMutedText(thread.body) : thread.body) : null
   const displayTitle = rawBody ? deriveTitleFromBody(rawBody) : thread.title

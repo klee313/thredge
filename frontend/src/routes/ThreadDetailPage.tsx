@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -11,6 +11,7 @@ import {
 } from '../lib/api'
 import { useTextareaAutosize } from '../hooks/useTextareaAutosize'
 import { useThreadActions } from '../hooks/useThreadActions'
+import { useThreadDetailState } from '../hooks/useThreadDetailState'
 import { buildEntryDepthMap } from '../lib/entryDepth'
 import { deriveTitleFromBody, getBodyWithoutTitle } from '../lib/threadText'
 import { isMutedText, stripMutedText, toggleMutedText } from '../lib/mutedText'
@@ -24,16 +25,37 @@ export function ThreadDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [entryBody, setEntryBody] = useState('')
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
-  const [editingEntryBody, setEditingEntryBody] = useState('')
-  const [isEditingThread, setIsEditingThread] = useState(false)
-  const [editingThreadBody, setEditingThreadBody] = useState('')
-  const [editingThreadCategories, setEditingThreadCategories] = useState<string[]>([])
-  const [editingCategoryInput, setEditingCategoryInput] = useState('')
-  const [isAddingEditingCategory, setIsAddingEditingCategory] = useState(false)
+  const { state, actions } = useThreadDetailState()
+  const {
+    entryBody,
+    replyDrafts,
+    activeReplyId,
+    editingEntryId,
+    editingEntryBody,
+    isEditingThread,
+    editingThreadBody,
+    editingThreadCategories,
+    editingCategoryInput,
+    isAddingEditingCategory,
+  } = state
+  const {
+    setEntryBody,
+    setEditingEntryBody,
+    setEditingThreadBody,
+    setEditingThreadCategories,
+    setEditingCategoryInput,
+    setIsAddingEditingCategory,
+    setIsEditingThread,
+    syncThread,
+    startEditThread,
+    cancelEditThread,
+    toggleEditingCategory,
+    startEntryEdit,
+    cancelEntryEdit,
+    startReply,
+    cancelReply,
+    updateReplyDraft,
+  } = actions
   const { handleTextareaInput, resizeTextarea } = useTextareaAutosize({
     deps: [editingThreadBody, editingEntryBody, replyDrafts, entryBody],
   })
@@ -80,8 +102,8 @@ export function ThreadDetailPage() {
     }) => addEntry(id ?? '', body, parentEntryId),
     onSuccess: async (_, variables) => {
       if (variables.parentEntryId) {
-        setReplyDrafts((prev) => ({ ...prev, [variables.parentEntryId as string]: '' }))
-        setActiveReplyId(null)
+        updateReplyDraft(variables.parentEntryId as string, '')
+        cancelReply()
       } else {
         setEntryBody('')
       }
@@ -101,8 +123,8 @@ export function ThreadDetailPage() {
     hideEntryMutation,
   } = useThreadActions({
     threadId: id ?? undefined,
-    invalidate: { feed: true, thread: true, hiddenThreads: true, hiddenEntries: true },
-    onThreadUpdated: (_threadId) => {
+    invalidateTargets: ['feed', 'thread', 'hiddenThreads', 'hiddenEntries'],
+    onThreadUpdated: () => {
       if (!isEditingThread) {
         return
       }
@@ -115,16 +137,14 @@ export function ThreadDetailPage() {
     },
     onEntryUpdated: (entryId, _body) => {
       if (editingEntryId === entryId) {
-        setEditingEntryId(null)
-        setEditingEntryBody('')
+        cancelEntryEdit()
       }
     },
   })
 
   useEffect(() => {
     if (threadQuery.data) {
-      setEditingThreadBody(threadQuery.data.body ?? '')
-      setEditingThreadCategories(threadQuery.data.categories.map((item) => item.name))
+      syncThread(threadQuery.data)
     }
   }, [threadQuery.data])
 
@@ -206,11 +226,7 @@ export function ThreadDetailPage() {
                         key={categoryName}
                         className="inline-flex rounded-full border border-gray-900 bg-gray-900 px-2 py-0.5 text-xs font-normal text-white"
                         type="button"
-                        onClick={() => {
-                          setEditingThreadCategories((prev) =>
-                            prev.filter((item) => item !== categoryName),
-                          )
-                        }}
+                        onClick={() => toggleEditingCategory(categoryName)}
                       >
                         {categoryName}
                       </button>
@@ -229,11 +245,7 @@ export function ThreadDetailPage() {
                   className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 text-gray-500"
                   type="button"
                   onClick={() => {
-                    setIsEditingThread(true)
-                    setEditingThreadBody(threadQuery.data.body ?? '')
-                    setEditingThreadCategories(threadQuery.data.categories.map((item) => item.name))
-                    setEditingCategoryInput('')
-                    setIsAddingEditingCategory(false)
+                    startEditThread(threadQuery.data)
                   }}
                   aria-label={t('home.edit')}
                 >
@@ -330,13 +342,7 @@ export function ThreadDetailPage() {
                                   : 'border-gray-300 text-gray-700'
                               }`}
                               type="button"
-                              onClick={() => {
-                                setEditingThreadCategories((prev) =>
-                                  isSelected
-                                    ? prev.filter((item) => item !== category.name)
-                                    : [...prev, category.name],
-                                )
-                              }}
+                              onClick={() => toggleEditingCategory(category.name)}
                             >
                               {category.name}
                             </button>
@@ -373,13 +379,7 @@ export function ThreadDetailPage() {
                   <button
                     className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700"
                     type="button"
-                    onClick={() => {
-                      setIsEditingThread(false)
-                      setEditingThreadBody(threadQuery.data.body ?? '')
-                      setEditingThreadCategories(threadQuery.data.categories.map((item) => item.name))
-                      setEditingCategoryInput('')
-                      setIsAddingEditingCategory(false)
-                    }}
+                    onClick={() => cancelEditThread(threadQuery.data)}
                   >
                     {t('home.cancel')}
                   </button>
@@ -418,10 +418,7 @@ export function ThreadDetailPage() {
                       <button
                         className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 text-gray-500"
                         type="button"
-                        onClick={() => {
-                          setEditingEntryId(entry.id)
-                          setEditingEntryBody(entry.body)
-                        }}
+                        onClick={() => startEntryEdit(entry)}
                         aria-label={t('home.edit')}
                       >
                         <img className="h-3.5 w-3.5" src={eraserIcon} alt="" />
@@ -489,10 +486,7 @@ export function ThreadDetailPage() {
                           <button
                             className="rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700"
                             type="button"
-                            onClick={() => {
-                              setEditingEntryId(null)
-                              setEditingEntryBody('')
-                            }}
+                            onClick={cancelEntryEdit}
                           >
                             {t('home.cancel')}
                           </button>
@@ -520,13 +514,7 @@ export function ThreadDetailPage() {
                               <button
                                 className="rounded-md border border-gray-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700"
                                 type="button"
-                                onClick={() => {
-                                  setActiveReplyId(entry.id)
-                                  setReplyDrafts((prev) => ({
-                                    ...prev,
-                                    [entry.id]: prev[entry.id] ?? '',
-                                  }))
-                                }}
+                                onClick={() => startReply(entry.id)}
                               >
                                 {t('home.reply')}
                               </button>
@@ -551,12 +539,7 @@ export function ThreadDetailPage() {
                           className="min-h-[64px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
                           placeholder={t('home.replyPlaceholder')}
                           value={replyDrafts[entry.id] ?? ''}
-                          onChange={(event) =>
-                            setReplyDrafts((prev) => ({
-                              ...prev,
-                              [entry.id]: event.target.value,
-                            }))
-                          }
+                          onChange={(event) => updateReplyDraft(entry.id, event.target.value)}
                           onInput={handleTextareaInput}
                           data-autoresize="true"
                           ref={(element) => resizeTextarea(element)}
@@ -572,7 +555,7 @@ export function ThreadDetailPage() {
                           <button
                             className="rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700"
                             type="button"
-                            onClick={() => setActiveReplyId(null)}
+                            onClick={cancelReply}
                           >
                             {t('home.cancel')}
                           </button>

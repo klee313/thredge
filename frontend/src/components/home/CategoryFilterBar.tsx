@@ -2,7 +2,6 @@ type CategoryItem = {
   id: string
   name: string
   count: number
-  totalCount: number
   canDelete: boolean
 }
 

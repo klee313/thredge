@@ -5,6 +5,8 @@ import type { EntryDetail } from '../../lib/api'
 import { highlightMatches } from '../../lib/highlightMatches'
 import { isMutedText, stripMutedText, toggleMutedText } from '../../lib/mutedText'
 import eraserIcon from '../../assets/eraser.svg'
+import { EntryEditor } from './EntryEditor'
+import { ReplyComposer } from './ReplyComposer'
 
 type EntryCardProps = {
   entry: EntryDetail
@@ -98,41 +100,16 @@ export function EntryCard({
         </button>
       </div>
       {isEditing ? (
-        <form
-          className="space-y-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (!editingBody.trim()) {
-              return
-            }
-            onEditSave()
-          }}
-        >
-          <textarea
-            className="min-h-[72px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
-            value={editingBody}
-            onChange={(event) => onEditChange(event.target.value)}
-            onInput={handleTextareaInput}
-            data-autoresize="true"
-            ref={(element) => resizeTextarea(element)}
-          />
-          <div className="flex items-center gap-2">
-            <button
-              className="rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white"
-              type="submit"
-              disabled={isEntryUpdatePending}
-            >
-              {t('home.save')}
-            </button>
-            <button
-              className="rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700"
-              type="button"
-              onClick={onEditCancel}
-            >
-              {t('home.cancel')}
-            </button>
-          </div>
-        </form>
+        <EntryEditor
+          value={editingBody}
+          onChange={onEditChange}
+          onSave={onEditSave}
+          onCancel={onEditCancel}
+          isSaving={isEntryUpdatePending}
+          labels={{ save: t('home.save'), cancel: t('home.cancel') }}
+          handleTextareaInput={handleTextareaInput}
+          resizeTextarea={resizeTextarea}
+        />
       ) : (
         <>
           <div
@@ -161,42 +138,17 @@ export function EntryCard({
         </>
       )}
       {isReplyActive && depth < 3 && (
-        <form
-          className="mt-1 space-y-2 sm:mt-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (!replyDraft.trim()) {
-              return
-            }
-            onReplySubmit()
-          }}
-        >
-          <textarea
-            className="min-h-[64px] w-full resize-none overflow-y-hidden rounded-md border border-gray-300 px-3 py-2 text-sm"
-            placeholder={t('home.replyPlaceholder')}
-            value={replyDraft}
-            onChange={(event) => onReplyChange(event.target.value)}
-            onInput={handleTextareaInput}
-            data-autoresize="true"
-            ref={(element) => resizeTextarea(element)}
-          />
-          <div className="flex items-center gap-2">
-            <button
-              className="rounded-md bg-gray-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white"
-              type="submit"
-              disabled={isReplyPending}
-            >
-              {t('home.reply')}
-            </button>
-            <button
-              className="rounded-md border border-gray-300 px-2 py-1 text-[10px] text-gray-700"
-              type="button"
-              onClick={onReplyCancel}
-            >
-              {t('home.cancel')}
-            </button>
-          </div>
-        </form>
+        <ReplyComposer
+          value={replyDraft}
+          placeholder={t('home.replyPlaceholder')}
+          onChange={onReplyChange}
+          onSubmit={onReplySubmit}
+          onCancel={onReplyCancel}
+          isSubmitting={isReplyPending}
+          labels={{ submit: t('home.reply'), cancel: t('home.cancel') }}
+          handleTextareaInput={handleTextareaInput}
+          resizeTextarea={resizeTextarea}
+        />
       )}
     </div>
   )

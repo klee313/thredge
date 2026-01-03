@@ -9,17 +9,16 @@ import {
   updateThread,
 } from '../lib/api'
 
-type InvalidateOptions = {
-  feed?: boolean
-  search?: boolean
-  thread?: boolean
-  hiddenThreads?: boolean
-  hiddenEntries?: boolean
-}
+export type InvalidateTarget =
+  | 'feed'
+  | 'search'
+  | 'thread'
+  | 'hiddenThreads'
+  | 'hiddenEntries'
 
 type ThreadActionsOptions = {
   threadId?: string
-  invalidate?: InvalidateOptions
+  invalidateTargets?: InvalidateTarget[]
   onThreadUpdated?: (threadId: string) => void
   onThreadHidden?: (threadId: string) => void
   onThreadPinned?: (updated: ThreadSummary) => void
@@ -28,30 +27,28 @@ type ThreadActionsOptions = {
   onEntryHidden?: (entryId: string) => void
 }
 
-const defaultInvalidate: InvalidateOptions = {
-  feed: true,
-  thread: true,
-}
+const defaultInvalidateTargets: InvalidateTarget[] = ['feed', 'thread']
 
 export const useThreadActions = (options: ThreadActionsOptions = {}) => {
   const queryClient = useQueryClient()
-  const invalidate = { ...defaultInvalidate, ...options.invalidate }
+  const invalidateTargets = options.invalidateTargets ?? defaultInvalidateTargets
+  const shouldInvalidate = (target: InvalidateTarget) => invalidateTargets.includes(target)
 
   const invalidateThreadKeys = async (threadId?: string | null) => {
     const id = threadId ?? options.threadId
-    if (invalidate.thread && id) {
+    if (shouldInvalidate('thread') && id) {
       await queryClient.invalidateQueries({ queryKey: ['thread', id] })
     }
-    if (invalidate.feed) {
+    if (shouldInvalidate('feed')) {
       await queryClient.invalidateQueries({ queryKey: ['threads', 'feed'] })
     }
-    if (invalidate.search) {
+    if (shouldInvalidate('search')) {
       await queryClient.invalidateQueries({ queryKey: ['threads', 'search'] })
     }
-    if (invalidate.hiddenThreads) {
+    if (shouldInvalidate('hiddenThreads')) {
       await queryClient.invalidateQueries({ queryKey: ['threads', 'hidden'] })
     }
-    if (invalidate.hiddenEntries) {
+    if (shouldInvalidate('hiddenEntries')) {
       await queryClient.invalidateQueries({ queryKey: ['entries', 'hidden'] })
     }
   }

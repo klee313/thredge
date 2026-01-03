@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   addEntry,
@@ -20,6 +20,7 @@ import { DateFilter } from './DateFilter'
 import { ThreadCard } from './ThreadCard'
 import { useDateFilter } from '../../hooks/useDateFilter'
 import { useThreadActions } from '../../hooks/useThreadActions'
+import { useHomeFeedState } from '../../hooks/useHomeFeedState'
 
 type HomeFeedProps = {
   username: string
@@ -30,23 +31,49 @@ const UNCATEGORIZED_TOKEN = '__uncategorized__'
 export function HomeFeed({ username }: HomeFeedProps) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const [threadBody, setThreadBody] = useState('')
-  const [newThreadCategories, setNewThreadCategories] = useState<string[]>([])
-  const [newCategoryInput, setNewCategoryInput] = useState('')
-  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [entryDrafts, setEntryDrafts] = useState<Record<string, string>>({})
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
-  const [editingThreadId, setEditingThreadId] = useState<string | null>(null)
-  const [editingThreadBody, setEditingThreadBody] = useState('')
-  const [editingThreadCategories, setEditingThreadCategories] = useState<string[]>([])
-  const [editingCategoryInput, setEditingCategoryInput] = useState('')
-  const [isAddingEditingCategory, setIsAddingEditingCategory] = useState(false)
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
-  const [editingEntryBody, setEditingEntryBody] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeComposerTab, setActiveComposerTab] = useState<'new' | 'search'>('new')
+  const { state, actions } = useHomeFeedState()
+  const {
+    threadBody,
+    newThreadCategories,
+    newCategoryInput,
+    isAddingNewCategory,
+    selectedCategories,
+    entryDrafts,
+    replyDrafts,
+    activeReplyId,
+    editingThreadId,
+    editingThreadBody,
+    editingThreadCategories,
+    editingCategoryInput,
+    isAddingEditingCategory,
+    editingEntryId,
+    editingEntryBody,
+    searchQuery,
+    activeComposerTab,
+  } = state
+  const {
+    setThreadBody,
+    setNewThreadCategories,
+    setNewCategoryInput,
+    setIsAddingNewCategory,
+    setSelectedCategories,
+    setEditingThreadCategories,
+    setEditingThreadBody,
+    setEditingCategoryInput,
+    setIsAddingEditingCategory,
+    setEditingEntryBody,
+    setSearchQuery,
+    setActiveComposerTab,
+    startEditThread,
+    cancelEditThread,
+    toggleEditingCategory,
+    startEntryEdit,
+    cancelEntryEdit,
+    startReply,
+    cancelReply,
+    updateReplyDraft,
+    updateEntryDraft,
+  } = actions
 
   const normalizedSearchQuery = useDebouncedValue(searchQuery.trim(), 250)
   const { handleTextareaInput, resizeTextarea } = useTextareaAutosize({
@@ -133,10 +160,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
     }) => addEntry(threadId, body, parentEntryId),
     onSuccess: async (_, variables) => {
       if (variables.parentEntryId) {
-        setReplyDrafts((prev) => ({ ...prev, [variables.parentEntryId as string]: '' }))
-        setActiveReplyId(null)
+        updateReplyDraft(variables.parentEntryId as string, '')
+        cancelReply()
       } else {
-        setEntryDrafts((prev) => ({ ...prev, [variables.threadId]: '' }))
+        updateEntryDraft(variables.threadId, '')
       }
       await queryClient.invalidateQueries({ queryKey: ['threads', 'feed'] })
       await queryClient.invalidateQueries({ queryKey: ['threads', 'search'] })
@@ -153,21 +180,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
     toggleEntryMuteMutation,
     hideEntryMutation,
   } = useThreadActions({
-    invalidate: {
-      feed: true,
-      search: true,
-      hiddenThreads: true,
-      hiddenEntries: true,
-    },
+    invalidateTargets: ['feed', 'search', 'hiddenThreads', 'hiddenEntries'],
     onThreadUpdated: (threadId) => {
       if (editingThreadId !== threadId) {
         return
       }
-      setEditingThreadId(null)
-      setEditingThreadBody('')
-      setEditingThreadCategories([])
-      setEditingCategoryInput('')
-      setIsAddingEditingCategory(false)
+      cancelEditThread()
     },
     onThreadHidden: (threadId) => {
       queryClient.setQueryData(['threads', 'feed'], (data) => {
@@ -211,8 +229,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
     },
     onEntryUpdated: (entryId, body) => {
       if (editingEntryId === entryId) {
-        setEditingEntryId(null)
-        setEditingEntryBody('')
+        cancelEntryEdit()
       }
       queryClient.setQueryData(['threads', 'feed'], (data) => {
         if (!Array.isArray(data)) {
@@ -484,7 +501,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   id: category.id,
                   name: category.name,
                   count,
-                  totalCount,
                   canDelete: threadsQuery.isSuccess && totalCount === 0,
                 }
               }) ?? []
@@ -545,152 +561,119 @@ export function HomeFeed({ username }: HomeFeedProps) {
             return (
               <ThreadCard
                 key={thread.id}
-                thread={thread}
-                theme={theme}
-                categories={categoriesQuery.data ?? []}
-                normalizedSearchQuery={normalizedSearchQuery}
-                entryDepth={entryDepth}
-                linkTo={`/threads/${thread.id}`}
-                isEditing={isEditing}
-                editingThreadBody={editingThreadBody}
-                editingThreadCategories={editingThreadCategories}
-                editingCategoryInput={editingCategoryInput}
-                isAddingEditingCategory={isAddingEditingCategory}
-                editingEntryId={editingEntryId}
-                editingEntryBody={editingEntryBody}
-                activeReplyId={activeReplyId}
-                replyDrafts={replyDrafts}
-                newEntryDraft={entryDrafts[thread.id] ?? ''}
-                isUpdateThreadPending={updateThreadMutation.isPending}
-                isCreateCategoryPending={createCategoryMutation.isPending}
-                isPinPending={pinThreadMutation.isPending}
-                isUnpinPending={unpinThreadMutation.isPending}
-                isHidePending={hideThreadMutation.isPending}
-                isEntryUpdatePending={updateEntryMutation.isPending}
-                isEntryHidePending={hideEntryMutation.isPending}
-                isEntryToggleMutePending={toggleEntryMuteMutation.isPending}
-                isReplyPending={addEntryMutation.isPending}
-                isAddEntryPending={addEntryMutation.isPending}
-                t={t}
-                onStartEdit={() => {
-                  setEditingThreadId(thread.id)
-                  setEditingThreadBody(thread.body ?? '')
-                  setEditingThreadCategories(thread.categories.map((item) => item.name))
-                  setEditingCategoryInput('')
-                  setIsAddingEditingCategory(false)
+                data={{
+                  thread,
+                  theme,
+                  categories: categoriesQuery.data ?? [],
+                  normalizedSearchQuery,
+                  entryDepth,
+                  linkTo={`/threads/${thread.id}`,
                 }}
-                onCancelEdit={() => {
-                  setEditingThreadId(null)
-                  setEditingThreadBody('')
-                  setEditingThreadCategories([])
-                  setEditingCategoryInput('')
-                  setIsAddingEditingCategory(false)
+                ui={{
+                  isEditing,
+                  editingThreadBody,
+                  editingThreadCategories,
+                  editingCategoryInput,
+                  isAddingEditingCategory,
+                  editingEntryId,
+                  editingEntryBody,
+                  activeReplyId,
+                  replyDrafts,
+                  newEntryDraft: entryDrafts[thread.id] ?? '',
+                  isUpdateThreadPending: updateThreadMutation.isPending,
+                  isCreateCategoryPending: createCategoryMutation.isPending,
+                  isPinPending: pinThreadMutation.isPending,
+                  isUnpinPending: unpinThreadMutation.isPending,
+                  isHidePending: hideThreadMutation.isPending,
+                  isEntryUpdatePending: updateEntryMutation.isPending,
+                  isEntryHidePending: hideEntryMutation.isPending,
+                  isEntryToggleMutePending: toggleEntryMuteMutation.isPending,
+                  isReplyPending: addEntryMutation.isPending,
+                  isAddEntryPending: addEntryMutation.isPending,
                 }}
-                onEditingThreadBodyChange={setEditingThreadBody}
-                onEditingCategoryToggle={(categoryName) => {
-                  setEditingThreadCategories((prev) =>
-                    prev.includes(categoryName)
-                      ? prev.filter((item) => item !== categoryName)
-                      : [...prev, categoryName],
-                  )
+                actions={{
+                  onStartEdit: () => startEditThread(thread),
+                  onCancelEdit: cancelEditThread,
+                  onEditingThreadBodyChange: setEditingThreadBody,
+                  onEditingCategoryToggle: toggleEditingCategory,
+                  onEditingCategoryInputChange: setEditingCategoryInput,
+                  onEditingCategoryOpen: () => setIsAddingEditingCategory(true),
+                  onEditingCategoryCancel: () => {
+                    setEditingCategoryInput('')
+                    setIsAddingEditingCategory(false)
+                  },
+                  onEditingCategorySubmit: () => submitCategory('edit'),
+                  onSaveEdit: () =>
+                    updateThreadMutation.mutate({
+                      threadId: thread.id,
+                      body: editingThreadBody,
+                      categoryNames: editingThreadCategories,
+                    }),
+                  onTogglePin: () => {
+                    if (thread.pinned) {
+                      unpinThreadMutation.mutate(thread.id)
+                    } else {
+                      pinThreadMutation.mutate(thread.id)
+                    }
+                  },
+                  onToggleMute: () => {
+                    if (!thread.body) {
+                      return
+                    }
+                    toggleThreadMuteMutation.mutate({
+                      threadId: thread.id,
+                      body: toggleMutedText(thread.body),
+                      categoryNames: thread.categories.map((item) => item.name),
+                    })
+                  },
+                  onHide: () => hideThreadMutation.mutate(thread.id),
+                  onEntryEditStart: (entryId, body) => startEntryEdit({ id: entryId, body }),
+                  onEntryEditChange: setEditingEntryBody,
+                  onEntryEditCancel: cancelEntryEdit,
+                  onEntryEditSave: (entryId) => {
+                    if (!editingEntryBody.trim()) {
+                      return
+                    }
+                    updateEntryMutation.mutate({
+                      entryId,
+                      body: editingEntryBody,
+                    })
+                  },
+                  onEntryToggleMute: (entryId, body) => {
+                    if (!body) {
+                      return
+                    }
+                    toggleEntryMuteMutation.mutate({ entryId, body })
+                  },
+                  onEntryHide: (entryId) => hideEntryMutation.mutate(entryId),
+                  onReplyStart: (entryId) => startReply(entryId),
+                  onReplyChange: (entryId, value) => updateReplyDraft(entryId, value),
+                  onReplyCancel: cancelReply,
+                  onReplySubmit: (entryId) => {
+                    const body = replyDrafts[entryId]?.trim()
+                    if (!body) {
+                      return
+                    }
+                    addEntryMutation.mutate({
+                      threadId: thread.id,
+                      body,
+                      parentEntryId: entryId,
+                    })
+                  },
+                  onNewEntryChange: (value) => updateEntryDraft(thread.id, value),
+                  onNewEntrySubmit: () => {
+                    const body = entryDrafts[thread.id]?.trim()
+                    if (!body) {
+                      return
+                    }
+                    addEntryMutation.mutate({ threadId: thread.id, body })
+                  },
                 }}
-                onEditingCategoryInputChange={setEditingCategoryInput}
-                onEditingCategoryOpen={() => setIsAddingEditingCategory(true)}
-                onEditingCategoryCancel={() => {
-                  setEditingCategoryInput('')
-                  setIsAddingEditingCategory(false)
+                helpers={{
+                  t,
+                  handleTextareaInput,
+                  resizeTextarea,
                 }}
-                onEditingCategorySubmit={() => submitCategory('edit')}
-                onSaveEdit={() =>
-                  updateThreadMutation.mutate({
-                    threadId: thread.id,
-                    body: editingThreadBody,
-                    categoryNames: editingThreadCategories,
-                  })
-                }
-                onTogglePin={() => {
-                  if (thread.pinned) {
-                    unpinThreadMutation.mutate(thread.id)
-                  } else {
-                    pinThreadMutation.mutate(thread.id)
-                  }
-                }}
-                onToggleMute={() => {
-                  if (!thread.body) {
-                    return
-                  }
-                  toggleThreadMuteMutation.mutate({
-                    threadId: thread.id,
-                    body: toggleMutedText(thread.body),
-                    categoryNames: thread.categories.map((item) => item.name),
-                  })
-                }}
-                onHide={() => hideThreadMutation.mutate(thread.id)}
-                onEntryEditStart={(entryId, body) => {
-                  setEditingEntryId(entryId)
-                  setEditingEntryBody(body)
-                }}
-                onEntryEditChange={setEditingEntryBody}
-                onEntryEditCancel={() => {
-                  setEditingEntryId(null)
-                  setEditingEntryBody('')
-                }}
-                onEntryEditSave={(entryId) => {
-                  if (!editingEntryBody.trim()) {
-                    return
-                  }
-                  updateEntryMutation.mutate({
-                    entryId,
-                    body: editingEntryBody,
-                  })
-                }}
-                onEntryToggleMute={(entryId, body) => {
-                  if (!body) {
-                    return
-                  }
-                  toggleEntryMuteMutation.mutate({ entryId, body })
-                }}
-                onEntryHide={(entryId) => hideEntryMutation.mutate(entryId)}
-                onReplyStart={(entryId) => {
-                  setActiveReplyId(entryId)
-                  setReplyDrafts((prev) => ({
-                    ...prev,
-                    [entryId]: prev[entryId] ?? '',
-                  }))
-                }}
-                onReplyChange={(entryId, value) =>
-                  setReplyDrafts((prev) => ({
-                    ...prev,
-                    [entryId]: value,
-                  }))
-                }
-                onReplyCancel={() => setActiveReplyId(null)}
-                onReplySubmit={(entryId) => {
-                  const body = replyDrafts[entryId]?.trim()
-                  if (!body) {
-                    return
-                  }
-                  addEntryMutation.mutate({
-                    threadId: thread.id,
-                    body,
-                    parentEntryId: entryId,
-                  })
-                }}
-                onNewEntryChange={(value) =>
-                  setEntryDrafts((prev) => ({
-                    ...prev,
-                    [thread.id]: value,
-                  }))
-                }
-                onNewEntrySubmit={() => {
-                  const body = entryDrafts[thread.id]?.trim()
-                  if (!body) {
-                    return
-                  }
-                  addEntryMutation.mutate({ threadId: thread.id, body })
-                }}
-                handleTextareaInput={handleTextareaInput}
-                resizeTextarea={resizeTextarea}
               />
             )
           })}
