@@ -35,7 +35,7 @@ class ThreadMapper {
             lastActivityAt = thread.lastActivityAt,
             categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
             pinned = thread.isPinned,
-            entries = entries.filter { !it.isHidden }.map { toEntryDetail(it, thread.id) },
+            entries = entries.filter { !it.isHidden }.map { toEntryDetail(it, null) },
         )
 
     fun toEntryDetail(entry: EntryEntity, threadId: java.util.UUID? = entry.thread?.id): EntryDetail =

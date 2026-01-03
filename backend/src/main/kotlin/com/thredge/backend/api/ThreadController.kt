@@ -2,11 +2,13 @@ package com.thredge.backend.api
 
 import com.thredge.backend.api.dto.EntryDetail
 import com.thredge.backend.api.dto.EntryRequest
+import com.thredge.backend.api.dto.ThreadCreateRequest
 import com.thredge.backend.api.dto.ThreadDetail
-import com.thredge.backend.api.dto.ThreadRequest
 import com.thredge.backend.api.dto.ThreadSummary
+import com.thredge.backend.api.dto.ThreadUpdateRequest
 import com.thredge.backend.service.ThreadService
 import com.thredge.backend.support.AuthSupport
+import jakarta.validation.Valid
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -62,7 +64,7 @@ class ThreadController(
 
     @PostMapping
     fun createThread(
-        @RequestBody request: ThreadRequest,
+        @Valid @RequestBody request: ThreadCreateRequest,
         authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
@@ -82,7 +84,7 @@ class ThreadController(
     @PatchMapping("/{id}")
     fun updateThread(
         @PathVariable id: String,
-        @RequestBody request: ThreadRequest,
+        @Valid @RequestBody request: ThreadUpdateRequest,
         authentication: Authentication?,
     ): ThreadSummary {
         val ownerUsername = authSupport.requireUsername(authentication)
@@ -129,7 +131,7 @@ class ThreadController(
     @PostMapping("/{id}/entries")
     fun addEntry(
         @PathVariable id: String,
-        @RequestBody request: EntryRequest,
+        @Valid @RequestBody request: EntryRequest,
         authentication: Authentication?,
     ): EntryDetail {
         val ownerUsername = authSupport.requireUsername(authentication)

@@ -1,9 +1,11 @@
 package com.thredge.backend.service
 
+import com.thredge.backend.api.dto.EntryDetail
 import com.thredge.backend.api.dto.EntryRequest
+import com.thredge.backend.api.dto.ThreadCreateRequest
 import com.thredge.backend.api.dto.ThreadDetail
-import com.thredge.backend.api.dto.ThreadRequest
 import com.thredge.backend.api.dto.ThreadSummary
+import com.thredge.backend.api.dto.ThreadUpdateRequest
 import com.thredge.backend.api.mapper.ThreadMapper
 import com.thredge.backend.domain.entity.CategoryEntity
 import com.thredge.backend.domain.entity.EntryEntity
@@ -11,11 +13,12 @@ import com.thredge.backend.domain.entity.ThreadEntity
 import com.thredge.backend.domain.repository.CategoryRepository
 import com.thredge.backend.domain.repository.EntryRepository
 import com.thredge.backend.domain.repository.ThreadRepository
+import com.thredge.backend.support.BadRequestException
+import com.thredge.backend.support.IdParser
+import com.thredge.backend.support.NotFoundException
 import java.time.Instant
 import java.util.UUID
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import org.springframework.web.server.ResponseStatusException
 
 @Service
 class ThreadService(
@@ -30,10 +33,7 @@ class ThreadService(
 
     fun feed(ownerUsername: String): List<ThreadDetail> {
         val threads = threadRepository.findByOwnerUsernameAndIsHiddenFalseOrderByIsPinnedDescLastActivityAtDesc(ownerUsername)
-        return threads.map { thread ->
-            val entries = entryRepository.findByThreadIdOrderByCreatedAtAsc(thread.id!!)
-            threadMapper.toThreadDetail(thread, entries)
-        }
+        return threads.map(::buildThreadDetail)
     }
 
     fun searchThreads(ownerUsername: String, query: String): List<ThreadDetail> {
@@ -42,10 +42,7 @@ class ThreadService(
             return emptyList()
         }
         val threads = threadRepository.searchVisibleThreads(ownerUsername, trimmedQuery)
-        return threads.map { thread ->
-            val entries = entryRepository.findByThreadIdOrderByCreatedAtAsc(thread.id!!)
-            threadMapper.toThreadDetail(thread, entries)
-        }
+        return threads.map(::buildThreadDetail)
     }
 
     fun listHidden(ownerUsername: String): List<ThreadSummary> =
@@ -61,11 +58,8 @@ class ThreadService(
             .map(threadMapper::toThreadSummary)
     }
 
-    fun createThread(ownerUsername: String, request: ThreadRequest): ThreadSummary {
-        val body = request.body?.trim().orEmpty()
-        if (body.isBlank()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Body is required.")
-        }
+    fun createThread(ownerUsername: String, request: ThreadCreateRequest): ThreadSummary {
+        val body = request.body.trim()
         val title = deriveTitle(body)
         val categories = resolveCategories(request.categoryNames, ownerUsername)
         val thread =
@@ -82,17 +76,13 @@ class ThreadService(
 
     fun getThread(ownerUsername: String, id: String, includeHidden: Boolean): ThreadDetail {
         val thread = findThread(id, ownerUsername, includeHidden = includeHidden)
-        val entries = entryRepository.findByThreadIdOrderByCreatedAtAsc(thread.id!!)
-        return threadMapper.toThreadDetail(thread, entries)
+        return buildThreadDetail(thread)
     }
 
-    fun updateThread(ownerUsername: String, id: String, request: ThreadRequest): ThreadSummary {
+    fun updateThread(ownerUsername: String, id: String, request: ThreadUpdateRequest): ThreadSummary {
         val thread = findThread(id, ownerUsername)
         val newBody = request.body?.trim()
         if (newBody != null) {
-            if (newBody.isBlank()) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Body is required.")
-            }
             thread.body = newBody
             thread.title = deriveTitle(newBody)
         } else if (!request.title.isNullOrBlank()) {
@@ -135,18 +125,15 @@ class ThreadService(
     }
 
     fun addEntry(ownerUsername: String, threadId: String, request: EntryRequest): EntryDetail {
-        if (request.body.isBlank()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Body is required.")
-        }
         val thread = findThread(threadId, ownerUsername)
         val parentEntryId = request.parentEntryId?.let {
             runCatching { UUID.fromString(it) }.getOrElse {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid parent entry id.")
+                throw BadRequestException("Invalid parent entry id.")
             }
         }
         val parentDepth = parentEntryId?.let { resolveEntryDepth(it, thread.id!!) } ?: 0
         if (parentDepth >= 3) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Reply depth limit reached.")
+            throw BadRequestException("Reply depth limit reached.")
         }
         val entry =
             entryRepository.save(
@@ -158,7 +145,7 @@ class ThreadService(
             )
         thread.lastActivityAt = Instant.now()
         threadRepository.save(thread)
-        return threadMapper.toEntryDetail(entry)
+        return threadMapper.toEntryDetail(entry, null)
     }
 
     private fun findThread(
@@ -166,15 +153,11 @@ class ThreadService(
         ownerUsername: String,
         includeHidden: Boolean = false,
     ): ThreadEntity {
-        val uuid =
-            runCatching { UUID.fromString(id) }.getOrNull()
-                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid thread id.")
-        val thread = threadRepository.findByIdAndOwnerUsername(uuid, ownerUsername) ?: throw ResponseStatusException(
-            HttpStatus.NOT_FOUND,
-            "Thread not found.",
-        )
+        val uuid = IdParser.parseUuid(id, "Invalid thread id.")
+        val thread = threadRepository.findByIdAndOwnerUsername(uuid, ownerUsername)
+            ?: throw NotFoundException("Thread not found.")
         if (thread.isHidden && !includeHidden) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Thread not found.")
+            throw NotFoundException("Thread not found.")
         }
         return thread
     }
@@ -204,14 +187,14 @@ class ThreadService(
         val visited = mutableSetOf<UUID>()
         while (currentId != null) {
             if (!visited.add(currentId)) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid reply chain.")
+                throw BadRequestException("Invalid reply chain.")
             }
-            val entry = entryRepository.findById(currentId).orElseThrow {
-                ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent entry not found.")
-            }
-            if (entry.thread?.id != threadId) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent entry mismatch.")
-            }
+        val entry = entryRepository.findById(currentId).orElseThrow {
+            BadRequestException("Parent entry not found.")
+        }
+        if (entry.thread?.id != threadId) {
+            throw BadRequestException("Parent entry mismatch.")
+        }
             currentId = entry.parentEntryId
             if (currentId != null) {
                 depth += 1
@@ -227,5 +210,10 @@ class ThreadService(
         val firstLine = body.lineSequence().firstOrNull().orEmpty().trim()
         val titleSource = if (firstLine.isNotBlank()) firstLine else body.trim()
         return titleSource.take(200)
+    }
+
+    private fun buildThreadDetail(thread: ThreadEntity): ThreadDetail {
+        val entries = entryRepository.findByThreadIdOrderByCreatedAtAsc(thread.id!!)
+        return threadMapper.toThreadDetail(thread, entries)
     }
 }

@@ -4,6 +4,7 @@ import com.thredge.backend.api.dto.EntryDetail
 import com.thredge.backend.api.dto.EntryUpdateRequest
 import com.thredge.backend.service.EntryService
 import com.thredge.backend.support.AuthSupport
+import jakarta.validation.Valid
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -38,7 +39,7 @@ class EntryController(
     @PatchMapping("/{id}")
     fun updateEntry(
         @PathVariable id: String,
-        @RequestBody request: EntryUpdateRequest,
+        @Valid @RequestBody request: EntryUpdateRequest,
         authentication: Authentication?,
     ): EntryDetail {
         val ownerUsername = authSupport.requireUsername(authentication)

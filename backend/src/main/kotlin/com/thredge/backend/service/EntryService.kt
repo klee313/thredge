@@ -6,11 +6,11 @@ import com.thredge.backend.api.mapper.ThreadMapper
 import com.thredge.backend.domain.entity.EntryEntity
 import com.thredge.backend.domain.repository.EntryRepository
 import com.thredge.backend.domain.repository.ThreadRepository
+import com.thredge.backend.support.IdParser
+import com.thredge.backend.support.NotFoundException
 import java.time.Instant
 import java.util.UUID
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import org.springframework.web.server.ResponseStatusException
 
 @Service
 class EntryService(
@@ -34,9 +34,6 @@ class EntryService(
     fun updateEntry(ownerUsername: String, id: String, request: EntryUpdateRequest): EntryDetail {
         val entry = findEntry(id, ownerUsername)
         if (request.body != null) {
-            if (request.body.isBlank()) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Body is required.")
-            }
             entry.body = request.body.trim()
         }
         val saved = entryRepository.save(entry)
@@ -64,15 +61,12 @@ class EntryService(
         ownerUsername: String,
         includeHidden: Boolean = false,
     ): EntryEntity {
-        val uuid =
-            runCatching { UUID.fromString(id) }.getOrElse {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid entry id.")
-            }
+        val uuid = IdParser.parseUuid(id, "Invalid entry id.")
         val entry =
             entryRepository.findByIdAndThreadOwnerUsername(uuid, ownerUsername)
-                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found.")
+                ?: throw NotFoundException("Entry not found.")
         if (entry.isHidden && !includeHidden) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found.")
+            throw NotFoundException("Entry not found.")
         }
         return entry
     }

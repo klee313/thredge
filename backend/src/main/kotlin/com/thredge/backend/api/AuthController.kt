@@ -5,6 +5,7 @@ import com.thredge.backend.api.dto.LoginRequest
 import com.thredge.backend.support.AuthSupport
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.validation.Valid
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
@@ -25,7 +26,7 @@ class AuthController(
 ) {
     @PostMapping("/login")
     fun login(
-        @RequestBody request: LoginRequest,
+        @Valid @RequestBody request: LoginRequest,
         httpRequest: HttpServletRequest,
         httpResponse: HttpServletResponse,
     ): AuthResponse {

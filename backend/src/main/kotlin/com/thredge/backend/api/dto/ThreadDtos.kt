@@ -1,5 +1,7 @@
 package com.thredge.backend.api.dto
 
+import com.thredge.backend.support.validation.NotBlankIfPresent
+import jakarta.validation.constraints.NotBlank
 import java.time.Instant
 
 data class ThreadSummary(
@@ -21,8 +23,16 @@ data class ThreadDetail(
     val entries: List<EntryDetail>,
 )
 
-data class ThreadRequest(
+data class ThreadCreateRequest(
+    @field:NotBlank(message = "Body is required.")
+    val body: String = "",
+    val categoryNames: List<String> = emptyList(),
+)
+
+data class ThreadUpdateRequest(
+    @field:NotBlankIfPresent(message = "Title is required.")
     val title: String? = null,
+    @field:NotBlankIfPresent(message = "Body is required.")
     val body: String? = null,
     val categoryNames: List<String> = emptyList(),
 )

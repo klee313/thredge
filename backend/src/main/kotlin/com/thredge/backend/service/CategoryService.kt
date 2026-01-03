@@ -6,10 +6,11 @@ import com.thredge.backend.api.mapper.CategoryMapper
 import com.thredge.backend.domain.entity.CategoryEntity
 import com.thredge.backend.domain.repository.CategoryRepository
 import com.thredge.backend.domain.repository.ThreadRepository
+import com.thredge.backend.support.ConflictException
+import com.thredge.backend.support.IdParser
+import com.thredge.backend.support.NotFoundException
 import java.util.UUID
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import org.springframework.web.server.ResponseStatusException
 
 @Service
 class CategoryService(
@@ -23,9 +24,6 @@ class CategoryService(
 
     fun create(ownerUsername: String, request: CategoryRequest): CategorySummary {
         val name = request.name.trim()
-        if (name.isBlank()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Name is required.")
-        }
         val existing = categoryRepository.findByOwnerUsernameAndNameIn(ownerUsername, listOf(name))
         val category =
             existing.firstOrNull()
@@ -41,19 +39,16 @@ class CategoryService(
     fun update(ownerUsername: String, id: String, request: CategoryRequest): CategorySummary {
         val uuid = parseId(id)
         val category = categoryRepository.findById(uuid).orElseThrow {
-            ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.")
+            NotFoundException("Category not found.")
         }
         if (category.ownerUsername != ownerUsername) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.")
+            throw NotFoundException("Category not found.")
         }
         val name = request.name.trim()
-        if (name.isBlank()) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Name is required.")
-        }
         if (category.name != name) {
             val exists = categoryRepository.findByOwnerUsernameAndNameIn(ownerUsername, listOf(name))
             if (exists.isNotEmpty()) {
-                throw ResponseStatusException(HttpStatus.CONFLICT, "Category already exists.")
+                throw ConflictException("Category already exists.")
             }
         }
         category.name = name
@@ -64,20 +59,18 @@ class CategoryService(
     fun delete(ownerUsername: String, id: String) {
         val uuid = parseId(id)
         val category = categoryRepository.findById(uuid).orElseThrow {
-            ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.")
+            NotFoundException("Category not found.")
         }
         if (category.ownerUsername != ownerUsername) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.")
+            throw NotFoundException("Category not found.")
         }
         val threads = threadRepository.findAllByCategoriesIdAndOwnerUsername(uuid, ownerUsername)
         if (threads.isNotEmpty()) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "Category has threads.")
+            throw ConflictException("Category has threads.")
         }
         categoryRepository.delete(category)
     }
 
     private fun parseId(id: String): UUID =
-        runCatching { UUID.fromString(id) }.getOrElse {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid category id.")
-        }
+        IdParser.parseUuid(id, "Invalid category id.")
 }

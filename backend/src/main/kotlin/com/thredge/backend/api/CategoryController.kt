@@ -4,6 +4,7 @@ import com.thredge.backend.api.dto.CategoryRequest
 import com.thredge.backend.api.dto.CategorySummary
 import com.thredge.backend.service.CategoryService
 import com.thredge.backend.support.AuthSupport
+import jakarta.validation.Valid
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -28,7 +29,7 @@ class CategoryController(
 
     @PostMapping
     fun create(
-        @RequestBody request: CategoryRequest,
+        @Valid @RequestBody request: CategoryRequest,
         authentication: Authentication?,
     ): CategorySummary {
         val ownerUsername = authSupport.requireUsername(authentication)
@@ -38,7 +39,7 @@ class CategoryController(
     @PatchMapping("/{id}")
     fun update(
         @PathVariable id: String,
-        @RequestBody request: CategoryRequest,
+        @Valid @RequestBody request: CategoryRequest,
         authentication: Authentication?,
     ): CategorySummary {
         val ownerUsername = authSupport.requireUsername(authentication)
