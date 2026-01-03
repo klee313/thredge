@@ -1,5 +1,6 @@
 package com.thredge.backend.api
 
+import com.thredge.backend.api.dto.CategoryCountsResponse
 import com.thredge.backend.api.dto.CategoryRequest
 import com.thredge.backend.api.dto.CategorySummary
 import com.thredge.backend.service.CategoryService
@@ -25,6 +26,12 @@ class CategoryController(
     fun list(authentication: Authentication?): List<CategorySummary> {
         val ownerUsername = authSupport.requireUsername(authentication)
         return categoryService.list(ownerUsername)
+    }
+
+    @GetMapping("/counts")
+    fun counts(authentication: Authentication?): CategoryCountsResponse {
+        val ownerUsername = authSupport.requireUsername(authentication)
+        return categoryService.counts(ownerUsername)
     }
 
     @PostMapping

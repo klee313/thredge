@@ -15,6 +15,7 @@ import com.thredge.backend.domain.repository.CategoryRepository
 import com.thredge.backend.domain.repository.EntryRepository
 import com.thredge.backend.domain.repository.ThreadRepository
 import com.thredge.backend.support.BadRequestException
+import com.thredge.backend.support.CategoryNameSupport
 import com.thredge.backend.support.IdParser
 import com.thredge.backend.support.NotFoundException
 import java.time.Instant
@@ -197,19 +198,39 @@ class ThreadService(
         rawNames: List<String>,
         ownerUsername: String,
     ): List<CategoryEntity> {
-        val names = rawNames.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        val names = CategoryNameSupport.normalizeAll(rawNames)
+            .distinctBy { CategoryNameSupport.key(it) }
         if (names.isEmpty()) {
             return emptyList()
         }
-        val existing = categoryRepository.findByOwnerUsernameAndNameIn(ownerUsername, names)
-        val existingNames = existing.map { it.name }.toSet()
-        val newCategories =
-            names.filterNot { existingNames.contains(it) }
-                .map { CategoryEntity(name = it, ownerUsername = ownerUsername) }
-        if (newCategories.isNotEmpty()) {
-            return existing + categoryRepository.saveAll(newCategories)
+        names.forEach(CategoryNameSupport::validateLength)
+        val existing = categoryRepository.findByOwnerUsernameOrderByName(ownerUsername)
+        val existingByKey = existing.associateBy { CategoryNameSupport.key(it.name) }
+        val resolved = mutableListOf<CategoryEntity>()
+        val toCreate = mutableListOf<CategoryEntity>()
+        names.forEach { name ->
+            val key = CategoryNameSupport.key(name)
+            val matched = existingByKey[key]
+            if (matched != null) {
+                resolved.add(matched)
+            } else {
+                val entity = CategoryEntity(name = name, ownerUsername = ownerUsername)
+                toCreate.add(entity)
+                resolved.add(entity)
+            }
         }
-        return existing
+        if (toCreate.isEmpty()) {
+            return resolved
+        }
+        val saved = categoryRepository.saveAll(toCreate)
+        val savedByKey = saved.associateBy { CategoryNameSupport.key(it.name) }
+        return resolved.map { category ->
+            if (category.id != null) {
+                category
+            } else {
+                savedByKey[CategoryNameSupport.key(category.name)] ?: category
+            }
+        }
     }
 
     private fun resolveEntryDepth(entryId: UUID, threadId: UUID): Int {

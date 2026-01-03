@@ -1,11 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   createThread,
   fetchCategories,
-  fetchThreadFeed,
-  searchThreads,
+  fetchCategoryCounts,
+  fetchThreadFeedPage,
+  searchThreadsPage,
 } from '../../lib/api'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { useTextareaAutosize } from '../../hooks/useTextareaAutosize'
@@ -81,20 +82,27 @@ export function HomeFeed({ username }: HomeFeedProps) {
     isSameCalendarDate,
   } = useDateFilter(i18n.language)
 
-  const threadsQuery = useQuery({
+  const threadsQuery = useInfiniteQuery({
     queryKey: queryKeys.threads.feed,
-    queryFn: fetchThreadFeed,
+    queryFn: ({ pageParam = 0 }) => fetchThreadFeedPage(pageParam),
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
   })
 
-  const searchThreadsQuery = useQuery({
+  const searchThreadsQuery = useInfiniteQuery({
     queryKey: queryKeys.threads.search(normalizedSearchQuery),
-    queryFn: () => searchThreads(normalizedSearchQuery),
+    queryFn: ({ pageParam = 0 }) => searchThreadsPage(normalizedSearchQuery, pageParam),
+    getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
     enabled: Boolean(normalizedSearchQuery),
   })
 
   const categoriesQuery = useQuery({
     queryKey: queryKeys.categories,
     queryFn: fetchCategories,
+  })
+
+  const categoryCountsQuery = useQuery({
+    queryKey: queryKeys.categoriesCounts,
+    queryFn: fetchCategoryCounts,
   })
 
   const createThreadMutation = useMutation({
@@ -107,6 +115,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.feed })
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.searchRoot })
       await queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.categoriesCounts })
     },
   })
 
@@ -198,8 +207,18 @@ export function HomeFeed({ username }: HomeFeedProps) {
     },
   })
 
+  const threadItems = useMemo(() => {
+    const pages = threadsQuery.data?.pages ?? []
+    return pages.flatMap((page) => page.items)
+  }, [threadsQuery.data])
+
+  const searchItems = useMemo(() => {
+    const pages = searchThreadsQuery.data?.pages ?? []
+    return pages.flatMap((page) => page.items)
+  }, [searchThreadsQuery.data])
+
   const filteredThreads = useMemo(() => {
-    const data = normalizedSearchQuery ? searchThreadsQuery.data ?? [] : threadsQuery.data ?? []
+    const data = normalizedSearchQuery ? searchItems : threadItems
     const dateFiltered = selectedDate
       ? data.filter((thread) => isSameCalendarDate(new Date(thread.createdAt), selectedDate))
       : data
@@ -218,8 +237,8 @@ export function HomeFeed({ username }: HomeFeedProps) {
       return matchesCategory || matchesUncategorized
     })
   }, [
-    threadsQuery.data,
-    searchThreadsQuery.data,
+    threadItems,
+    searchItems,
     selectedCategories,
     selectedDate,
     normalizedSearchQuery,
@@ -233,32 +252,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
     return map
   }, [filteredThreads])
 
-  const buildCategoryCounts = (threads: { categories: { name: string }[] }[]) => {
-    const counts = new Map<string, number>()
-    let uncategorizedCount = 0
-    threads.forEach((thread) => {
-      if (thread.categories.length === 0) {
-        uncategorizedCount += 1
-        return
-      }
-      thread.categories.forEach((category) => {
-        counts.set(category.name, (counts.get(category.name) ?? 0) + 1)
-      })
-    })
-    return { counts, uncategorizedCount }
-  }
+  const categoryCountsById = useMemo(() => {
+    const counts = categoryCountsQuery.data?.counts ?? []
+    return new Map(counts.map((item) => [item.id, item.count]))
+  }, [categoryCountsQuery.data])
 
-  const categoryCounts = useMemo(() => {
-    const searchData = normalizedSearchQuery ? searchThreadsQuery.data ?? [] : threadsQuery.data ?? []
-    const dateFiltered = selectedDate
-      ? searchData.filter((thread) => isSameCalendarDate(new Date(thread.createdAt), selectedDate))
-      : searchData
-    const totalData = threadsQuery.data ?? []
-    return {
-      display: buildCategoryCounts(dateFiltered),
-      total: buildCategoryCounts(totalData),
-    }
-  }, [threadsQuery.data, searchThreadsQuery.data, selectedDate, normalizedSearchQuery])
+  const activeThreadsQuery = normalizedSearchQuery ? searchThreadsQuery : threadsQuery
 
   return (
     <div className="space-y-4 sm:space-y-8">
@@ -434,18 +433,17 @@ export function HomeFeed({ username }: HomeFeedProps) {
           <CategoryFilterBar
             categories={
               categoriesQuery.data?.map((category) => {
-                const count = categoryCounts.display.counts.get(category.name) ?? 0
-                const totalCount = categoryCounts.total.counts.get(category.name) ?? 0
+                const count = categoryCountsById.get(category.id) ?? 0
                 return {
                   id: category.id,
                   name: category.name,
                   count,
-                  canDelete: threadsQuery.isSuccess && totalCount === 0,
+                  canDelete: categoryCountsQuery.isSuccess && count === 0,
                 }
               }) ?? []
             }
             selectedCategories={selectedCategories}
-            uncategorizedCount={categoryCounts.display.uncategorizedCount}
+            uncategorizedCount={categoryCountsQuery.data?.uncategorizedCount ?? 0}
             uncategorizedToken={UNCATEGORIZED_TOKEN}
             labels={{
               title: t('home.categories'),
@@ -473,10 +471,10 @@ export function HomeFeed({ username }: HomeFeedProps) {
               deleteCategoryMutation.mutate({ id, name })
             }}
           />
-          {(normalizedSearchQuery ? searchThreadsQuery : threadsQuery).isLoading && (
+          {activeThreadsQuery.isLoading && (
             <div className="text-sm text-gray-600">{t('common.loading')}</div>
           )}
-          {(normalizedSearchQuery ? searchThreadsQuery : threadsQuery).isError && (
+          {activeThreadsQuery.isError && (
             <div className="text-sm text-red-600">{t('home.error')}</div>
           )}
           {filteredThreads.map((thread, index) => {
@@ -617,8 +615,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
               />
             )
           })}
-          {!(normalizedSearchQuery ? searchThreadsQuery : threadsQuery).isLoading &&
-            filteredThreads.length === 0 && (
+          {!activeThreadsQuery.isLoading && filteredThreads.length === 0 && (
             <div className="text-sm text-gray-600">
               {normalizedSearchQuery
                 ? t('home.emptySearch')
@@ -626,6 +623,16 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   ? t('home.emptyThreadsForDate', { date: selectedDateLabel })
                   : t('home.emptyThreads')}
             </div>
+          )}
+          {activeThreadsQuery.hasNextPage && (
+            <button
+              className={uiTokens.button.secondarySm}
+              type="button"
+              onClick={() => activeThreadsQuery.fetchNextPage()}
+              disabled={activeThreadsQuery.isFetchingNextPage}
+            >
+              {activeThreadsQuery.isFetchingNextPage ? t('common.loading') : t('home.loadMore')}
+            </button>
           )}
         </div>
       </div>

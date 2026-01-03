@@ -64,7 +64,8 @@
     "categoryPlaceholder": "Yeni kategori",
     "addCategory": "Ekle",
     "loading": "Yükleniyor…",
-    "error": "Yüklenemedi"
+    "error": "Yüklenemedi",
+    "loadMore": "Daha fazla"
   },
   "settings": {
     "title": "Ayarlar",
@@ -125,7 +126,8 @@
     "error": "Yüklenemedi",
     "emptyThreads": "Gizli iş parçacığı yok.",
     "emptyEntries": "Gizli girdi yok.",
-    "lastActivity": "{{time}} güncellendi"
+    "lastActivity": "{{time}} güncellendi",
+    "loadMore": "Daha fazla"
   },
   "coachTone": {
     "warm": "Sıcak",

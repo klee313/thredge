@@ -64,7 +64,8 @@
     "categoryPlaceholder": "New category",
     "addCategory": "Add",
     "loading": "Loading…",
-    "error": "Failed to load"
+    "error": "Failed to load",
+    "loadMore": "Load more"
   },
   "settings": {
     "title": "Settings",
@@ -125,7 +126,8 @@
     "error": "Failed to load",
     "emptyThreads": "No hidden threads.",
     "emptyEntries": "No hidden entries.",
-    "lastActivity": "Updated {{time}}"
+    "lastActivity": "Updated {{time}}",
+    "loadMore": "Load more"
   },
   "coachTone": {
     "warm": "Warm",

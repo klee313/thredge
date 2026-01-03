@@ -20,6 +20,14 @@ export type CategorySummary = {
   id: string
   name: string
 }
+export type CategoryCountSummary = {
+  id: string
+  count: number
+}
+export type CategoryCountsResponse = {
+  counts: CategoryCountSummary[]
+  uncategorizedCount: number
+}
 export type ThreadDetail = {
   id: string
   title: string
@@ -30,6 +38,15 @@ export type ThreadDetail = {
   pinned: boolean
   entries: EntryDetail[]
 }
+export type PageResponse<T> = {
+  items: T[]
+  page: number
+  size: number
+  hasNext: boolean
+}
+
+export const THREAD_PAGE_SIZE = 20
+export const ENTRY_PAGE_SIZE = 50
 
 const requestJson = async <T>(
   path: string,
@@ -56,6 +73,11 @@ const requestEmpty = async (path: string, init: RequestInit, errorLabel: string)
   }
 }
 
+const buildPagedPath = (path: string, page: number, size: number) => {
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}page=${page}&size=${size}`
+}
+
 export async function fetchBackendHealth(): Promise<BackendHealth> {
   return requestJson('/api/health', {}, 'Backend health failed')
 }
@@ -78,8 +100,15 @@ export async function logout(): Promise<void> {
   }, 'Logout failed')
 }
 
-export async function fetchThreads(): Promise<ThreadSummary[]> {
-  return requestJson('/api/threads', {}, 'Threads fetch failed')
+export async function fetchThreadsPage(
+  page: number,
+  size: number = THREAD_PAGE_SIZE,
+): Promise<PageResponse<ThreadSummary>> {
+  return requestJson(
+    buildPagedPath('/api/threads', page, size),
+    {},
+    'Threads fetch failed',
+  )
 }
 
 export async function createThread(
@@ -109,13 +138,24 @@ export async function addEntry(
   }, 'Entry create failed')
 }
 
-export async function fetchThreadFeed(): Promise<ThreadDetail[]> {
-  return requestJson('/api/threads/feed', {}, 'Thread feed fetch failed')
+export async function fetchThreadFeedPage(
+  page: number,
+  size: number = THREAD_PAGE_SIZE,
+): Promise<PageResponse<ThreadDetail>> {
+  return requestJson(
+    buildPagedPath('/api/threads/feed', page, size),
+    {},
+    'Thread feed fetch failed',
+  )
 }
 
-export async function searchThreads(query: string): Promise<ThreadDetail[]> {
+export async function searchThreadsPage(
+  query: string,
+  page: number,
+  size: number = THREAD_PAGE_SIZE,
+): Promise<PageResponse<ThreadDetail>> {
   return requestJson(
-    `/api/threads/search?query=${encodeURIComponent(query)}`,
+    buildPagedPath(`/api/threads/search?query=${encodeURIComponent(query)}`, page, size),
     {},
     'Thread search failed',
   )
@@ -159,25 +199,47 @@ export async function restoreEntry(id: string): Promise<EntryDetail> {
   }, 'Entry restore failed')
 }
 
-export async function fetchHiddenEntries(): Promise<EntryDetail[]> {
-  return requestJson('/api/entries/hidden', {}, 'Hidden entries fetch failed')
+export async function fetchHiddenEntriesPage(
+  page: number,
+  size: number = ENTRY_PAGE_SIZE,
+): Promise<PageResponse<EntryDetail>> {
+  return requestJson(
+    buildPagedPath('/api/entries/hidden', page, size),
+    {},
+    'Hidden entries fetch failed',
+  )
 }
 
-export async function searchHiddenEntries(query: string): Promise<EntryDetail[]> {
+export async function searchHiddenEntriesPage(
+  query: string,
+  page: number,
+  size: number = ENTRY_PAGE_SIZE,
+): Promise<PageResponse<EntryDetail>> {
   return requestJson(
-    `/api/entries/hidden/search?query=${encodeURIComponent(query)}`,
+    buildPagedPath(`/api/entries/hidden/search?query=${encodeURIComponent(query)}`, page, size),
     {},
     'Hidden entries search failed',
   )
 }
 
-export async function fetchHiddenThreads(): Promise<ThreadSummary[]> {
-  return requestJson('/api/threads/hidden', {}, 'Hidden threads fetch failed')
+export async function fetchHiddenThreadsPage(
+  page: number,
+  size: number = THREAD_PAGE_SIZE,
+): Promise<PageResponse<ThreadSummary>> {
+  return requestJson(
+    buildPagedPath('/api/threads/hidden', page, size),
+    {},
+    'Hidden threads fetch failed',
+  )
 }
 
-export async function searchHiddenThreads(query: string): Promise<ThreadSummary[]> {
+export async function searchHiddenThreadsPage(
+  query: string,
+  page: number,
+  size: number = THREAD_PAGE_SIZE,
+): Promise<PageResponse<ThreadSummary>> {
   return requestJson(
-    `/api/threads/hidden/search?query=${encodeURIComponent(query)}`,
+    buildPagedPath(`/api/threads/hidden/search?query=${encodeURIComponent(query)}`, page, size),
     {},
     'Hidden threads search failed',
   )
@@ -203,6 +265,10 @@ export async function unpinThread(id: string): Promise<ThreadSummary> {
 
 export async function fetchCategories(): Promise<CategorySummary[]> {
   return requestJson('/api/categories', {}, 'Categories fetch failed')
+}
+
+export async function fetchCategoryCounts(): Promise<CategoryCountsResponse> {
+  return requestJson('/api/categories/counts', {}, 'Category counts fetch failed')
 }
 
 export async function createCategory(name: string): Promise<CategorySummary> {

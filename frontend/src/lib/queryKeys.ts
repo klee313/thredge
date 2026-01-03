@@ -23,4 +23,5 @@ export const queryKeys = {
     hiddenSearch: (query: string) => [...entriesHiddenSearchRoot, query] as const,
   },
   categories: ['categories'] as const,
+  categoriesCounts: ['categories', 'counts'] as const,
 }

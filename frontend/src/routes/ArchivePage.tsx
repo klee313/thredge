@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import {
-  fetchHiddenEntries,
-  fetchHiddenThreads,
+  fetchHiddenEntriesPage,
+  fetchHiddenThreadsPage,
   restoreEntry,
   restoreThread,
-  searchHiddenEntries,
-  searchHiddenThreads,
+  searchHiddenEntriesPage,
+  searchHiddenThreadsPage,
 } from '../lib/api'
 import { highlightMatches } from '../lib/highlightMatches'
 import { useArchivedSearch } from '../hooks/useArchivedSearch'
@@ -24,15 +24,15 @@ export function ArchivePage() {
   const threads = useArchivedSearch({
     queryKey: queryKeys.threads.hidden,
     searchKey: queryKeys.threads.hiddenSearch,
-    fetchAll: fetchHiddenThreads,
-    search: searchHiddenThreads,
+    fetchAll: (page) => fetchHiddenThreadsPage(page),
+    search: (query, page) => searchHiddenThreadsPage(query, page),
   })
 
   const entries = useArchivedSearch({
     queryKey: queryKeys.entries.hidden,
     searchKey: queryKeys.entries.hiddenSearch,
-    fetchAll: fetchHiddenEntries,
-    search: searchHiddenEntries,
+    fetchAll: (page) => fetchHiddenEntriesPage(page),
+    search: (query, page) => searchHiddenEntriesPage(query, page),
   })
 
   const restoreThreadMutation = useMutation({
@@ -124,6 +124,16 @@ export function ArchivePage() {
           {!threads.isLoading && threads.filtered.length === 0 && (
             <div className="text-sm text-gray-600">{t('archive.emptyThreads')}</div>
           )}
+          {threads.hasNextPage && (
+            <button
+              className={uiTokens.button.secondarySm}
+              type="button"
+              onClick={() => threads.fetchNextPage()}
+              disabled={threads.isFetchingNextPage}
+            >
+              {threads.isFetchingNextPage ? t('common.loading') : t('archive.loadMore')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -178,6 +188,16 @@ export function ArchivePage() {
           ))}
           {!entries.isLoading && entries.filtered.length === 0 && (
             <div className="text-sm text-gray-600">{t('archive.emptyEntries')}</div>
+          )}
+          {entries.hasNextPage && (
+            <button
+              className={uiTokens.button.secondarySm}
+              type="button"
+              onClick={() => entries.fetchNextPage()}
+              disabled={entries.isFetchingNextPage}
+            >
+              {entries.isFetchingNextPage ? t('common.loading') : t('archive.loadMore')}
+            </button>
           )}
         </div>
       </div>

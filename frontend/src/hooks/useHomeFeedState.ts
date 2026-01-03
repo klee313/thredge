@@ -1,14 +1,14 @@
 import { useState } from 'react'
+import {
+  useEntryEditingState,
+  useReplyDraftState,
+  useThreadEditingState,
+} from './useThreadUiState'
 
 type ThreadLike = {
   id: string
   body?: string | null
   categories: { name: string }[]
-}
-
-type EntryLike = {
-  id: string
-  body: string
 }
 
 export const useHomeFeedState = () => {
@@ -18,67 +18,22 @@ export const useHomeFeedState = () => {
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [entryDrafts, setEntryDrafts] = useState<Record<string, string>>({})
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null)
-  const [editingThreadBody, setEditingThreadBody] = useState('')
-  const [editingThreadCategories, setEditingThreadCategories] = useState<string[]>([])
-  const [editingCategoryInput, setEditingCategoryInput] = useState('')
-  const [isAddingEditingCategory, setIsAddingEditingCategory] = useState(false)
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
-  const [editingEntryBody, setEditingEntryBody] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeComposerTab, setActiveComposerTab] = useState<'new' | 'search'>('new')
 
+  const threadEditor = useThreadEditingState()
+  const entryEditor = useEntryEditingState()
+  const replyDraft = useReplyDraftState()
+
   const startEditThread = (thread: ThreadLike) => {
     setEditingThreadId(thread.id)
-    setEditingThreadBody(thread.body ?? '')
-    setEditingThreadCategories(thread.categories.map((item) => item.name))
-    setEditingCategoryInput('')
-    setIsAddingEditingCategory(false)
+    threadEditor.actions.startEditThread(thread)
   }
 
   const cancelEditThread = () => {
     setEditingThreadId(null)
-    setEditingThreadBody('')
-    setEditingThreadCategories([])
-    setEditingCategoryInput('')
-    setIsAddingEditingCategory(false)
-  }
-
-  const toggleEditingCategory = (name: string) => {
-    setEditingThreadCategories((prev) =>
-      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name],
-    )
-  }
-
-  const startEntryEdit = (entry: EntryLike) => {
-    setEditingEntryId(entry.id)
-    setEditingEntryBody(entry.body)
-  }
-
-  const cancelEntryEdit = () => {
-    setEditingEntryId(null)
-    setEditingEntryBody('')
-  }
-
-  const startReply = (entryId: string) => {
-    setActiveReplyId(entryId)
-    setReplyDrafts((prev) => ({
-      ...prev,
-      [entryId]: prev[entryId] ?? '',
-    }))
-  }
-
-  const cancelReply = () => {
-    setActiveReplyId(null)
-  }
-
-  const updateReplyDraft = (entryId: string, value: string) => {
-    setReplyDrafts((prev) => ({
-      ...prev,
-      [entryId]: value,
-    }))
+    threadEditor.actions.cancelEditThread(null)
   }
 
   const updateEntryDraft = (threadId: string, value: string) => {
@@ -96,15 +51,15 @@ export const useHomeFeedState = () => {
       isAddingNewCategory,
       selectedCategories,
       entryDrafts,
-      replyDrafts,
-      activeReplyId,
+      replyDrafts: replyDraft.state.replyDrafts,
+      activeReplyId: replyDraft.state.activeReplyId,
       editingThreadId,
-      editingThreadBody,
-      editingThreadCategories,
-      editingCategoryInput,
-      isAddingEditingCategory,
-      editingEntryId,
-      editingEntryBody,
+      editingThreadBody: threadEditor.state.editingThreadBody,
+      editingThreadCategories: threadEditor.state.editingThreadCategories,
+      editingCategoryInput: threadEditor.state.editingCategoryInput,
+      isAddingEditingCategory: threadEditor.state.isAddingEditingCategory,
+      editingEntryId: entryEditor.state.editingEntryId,
+      editingEntryBody: entryEditor.state.editingEntryBody,
       searchQuery,
       activeComposerTab,
     },
@@ -116,27 +71,27 @@ export const useHomeFeedState = () => {
         setIsAddingNewCategory,
         setSelectedCategories,
         setEditingThreadId,
-        setEditingThreadBody,
-        setEditingThreadCategories,
-        setEditingCategoryInput,
-        setIsAddingEditingCategory,
+        setEditingThreadBody: threadEditor.actions.setEditingThreadBody,
+        setEditingThreadCategories: threadEditor.actions.setEditingThreadCategories,
+        setEditingCategoryInput: threadEditor.actions.setEditingCategoryInput,
+        setIsAddingEditingCategory: threadEditor.actions.setIsAddingEditingCategory,
         startEditThread,
         cancelEditThread,
-        toggleEditingCategory,
+        toggleEditingCategory: threadEditor.actions.toggleEditingCategory,
       },
       entry: {
-        setEditingEntryId,
-        setEditingEntryBody,
-        startEntryEdit,
-        cancelEntryEdit,
+        setEditingEntryId: entryEditor.actions.setEditingEntryId,
+        setEditingEntryBody: entryEditor.actions.setEditingEntryBody,
+        startEntryEdit: entryEditor.actions.startEntryEdit,
+        cancelEntryEdit: entryEditor.actions.cancelEntryEdit,
         updateEntryDraft,
       },
       reply: {
-        setActiveReplyId,
-        setReplyDrafts,
-        startReply,
-        cancelReply,
-        updateReplyDraft,
+        setActiveReplyId: replyDraft.actions.setActiveReplyId,
+        setReplyDrafts: replyDraft.actions.setReplyDrafts,
+        startReply: replyDraft.actions.startReply,
+        cancelReply: replyDraft.actions.cancelReply,
+        updateReplyDraft: replyDraft.actions.updateReplyDraft,
       },
       ui: {
         setSearchQuery,

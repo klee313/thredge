@@ -66,4 +66,36 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         @Param("query") query: String,
         pageable: Pageable,
     ): Slice<ThreadEntity>
+
+    @Query(
+        """
+        select c.id as id, count(t.id) as count
+        from ThreadEntity t
+        join t.categories c
+        where t.ownerUsername = :ownerUsername
+          and t.isHidden = false
+        group by c.id
+        """,
+    )
+    fun countThreadsByCategory(
+        @Param("ownerUsername") ownerUsername: String,
+    ): List<CategoryCountView>
+
+    @Query(
+        """
+        select count(t.id)
+        from ThreadEntity t
+        where t.ownerUsername = :ownerUsername
+          and t.isHidden = false
+          and t.categories is empty
+        """,
+    )
+    fun countUncategorizedThreads(
+        @Param("ownerUsername") ownerUsername: String,
+    ): Long
+}
+
+interface CategoryCountView {
+    fun getId(): UUID
+    fun getCount(): Long
 }

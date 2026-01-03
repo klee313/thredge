@@ -1,4 +1,9 @@
 import { useState } from 'react'
+import {
+  useEntryEditingState,
+  useReplyDraftState,
+  useThreadEditingState,
+} from './useThreadUiState'
 
 type ThreadLike = {
   id: string
@@ -6,117 +11,65 @@ type ThreadLike = {
   categories: { name: string }[]
 }
 
-type EntryLike = {
-  id: string
-  body: string
-}
-
 export const useThreadDetailState = () => {
   const [entryBody, setEntryBody] = useState('')
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({})
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
-  const [editingEntryBody, setEditingEntryBody] = useState('')
   const [isEditingThread, setIsEditingThread] = useState(false)
-  const [editingThreadBody, setEditingThreadBody] = useState('')
-  const [editingThreadCategories, setEditingThreadCategories] = useState<string[]>([])
-  const [editingCategoryInput, setEditingCategoryInput] = useState('')
-  const [isAddingEditingCategory, setIsAddingEditingCategory] = useState(false)
+  const threadEditor = useThreadEditingState()
+  const entryEditor = useEntryEditingState()
+  const replyDraft = useReplyDraftState()
 
   const syncThread = (thread: ThreadLike) => {
-    setEditingThreadBody(thread.body ?? '')
-    setEditingThreadCategories(thread.categories.map((item) => item.name))
+    threadEditor.actions.syncThread(thread)
   }
 
   const startEditThread = (thread: ThreadLike) => {
     setIsEditingThread(true)
-    setEditingThreadBody(thread.body ?? '')
-    setEditingThreadCategories(thread.categories.map((item) => item.name))
-    setEditingCategoryInput('')
-    setIsAddingEditingCategory(false)
+    threadEditor.actions.startEditThread(thread)
   }
 
   const cancelEditThread = (thread: ThreadLike) => {
     setIsEditingThread(false)
-    setEditingThreadBody(thread.body ?? '')
-    setEditingThreadCategories(thread.categories.map((item) => item.name))
-    setEditingCategoryInput('')
-    setIsAddingEditingCategory(false)
-  }
-
-  const toggleEditingCategory = (name: string) => {
-    setEditingThreadCategories((prev) =>
-      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name],
-    )
-  }
-
-  const startEntryEdit = (entry: EntryLike) => {
-    setEditingEntryId(entry.id)
-    setEditingEntryBody(entry.body)
-  }
-
-  const cancelEntryEdit = () => {
-    setEditingEntryId(null)
-    setEditingEntryBody('')
-  }
-
-  const startReply = (entryId: string) => {
-    setActiveReplyId(entryId)
-    setReplyDrafts((prev) => ({
-      ...prev,
-      [entryId]: prev[entryId] ?? '',
-    }))
-  }
-
-  const cancelReply = () => {
-    setActiveReplyId(null)
-  }
-
-  const updateReplyDraft = (entryId: string, value: string) => {
-    setReplyDrafts((prev) => ({
-      ...prev,
-      [entryId]: value,
-    }))
+    threadEditor.actions.cancelEditThread(thread)
   }
 
   return {
     state: {
       entryBody,
-      replyDrafts,
-      activeReplyId,
-      editingEntryId,
-      editingEntryBody,
+      replyDrafts: replyDraft.state.replyDrafts,
+      activeReplyId: replyDraft.state.activeReplyId,
+      editingEntryId: entryEditor.state.editingEntryId,
+      editingEntryBody: entryEditor.state.editingEntryBody,
       isEditingThread,
-      editingThreadBody,
-      editingThreadCategories,
-      editingCategoryInput,
-      isAddingEditingCategory,
+      editingThreadBody: threadEditor.state.editingThreadBody,
+      editingThreadCategories: threadEditor.state.editingThreadCategories,
+      editingCategoryInput: threadEditor.state.editingCategoryInput,
+      isAddingEditingCategory: threadEditor.state.isAddingEditingCategory,
     },
     actions: {
       thread: {
         setIsEditingThread,
-        setEditingThreadBody,
-        setEditingThreadCategories,
-        setEditingCategoryInput,
-        setIsAddingEditingCategory,
+        setEditingThreadBody: threadEditor.actions.setEditingThreadBody,
+        setEditingThreadCategories: threadEditor.actions.setEditingThreadCategories,
+        setEditingCategoryInput: threadEditor.actions.setEditingCategoryInput,
+        setIsAddingEditingCategory: threadEditor.actions.setIsAddingEditingCategory,
         syncThread,
         startEditThread,
         cancelEditThread,
-        toggleEditingCategory,
+        toggleEditingCategory: threadEditor.actions.toggleEditingCategory,
       },
       entry: {
         setEntryBody,
-        setEditingEntryId,
-        setEditingEntryBody,
-        startEntryEdit,
-        cancelEntryEdit,
+        setEditingEntryId: entryEditor.actions.setEditingEntryId,
+        setEditingEntryBody: entryEditor.actions.setEditingEntryBody,
+        startEntryEdit: entryEditor.actions.startEntryEdit,
+        cancelEntryEdit: entryEditor.actions.cancelEntryEdit,
       },
       reply: {
-        setReplyDrafts,
-        setActiveReplyId,
-        startReply,
-        cancelReply,
-        updateReplyDraft,
+        setReplyDrafts: replyDraft.actions.setReplyDrafts,
+        setActiveReplyId: replyDraft.actions.setActiveReplyId,
+        startReply: replyDraft.actions.startReply,
+        cancelReply: replyDraft.actions.cancelReply,
+        updateReplyDraft: replyDraft.actions.updateReplyDraft,
       },
     },
   }

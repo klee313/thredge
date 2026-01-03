@@ -42,6 +42,7 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
     }
     if (shouldInvalidate('feed')) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.feed })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.categoriesCounts })
     }
     if (shouldInvalidate('search')) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.searchRoot })

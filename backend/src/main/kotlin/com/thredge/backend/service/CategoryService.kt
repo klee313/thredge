@@ -1,11 +1,14 @@
 package com.thredge.backend.service
 
+import com.thredge.backend.api.dto.CategoryCountSummary
+import com.thredge.backend.api.dto.CategoryCountsResponse
 import com.thredge.backend.api.dto.CategoryRequest
 import com.thredge.backend.api.dto.CategorySummary
 import com.thredge.backend.api.mapper.CategoryMapper
 import com.thredge.backend.domain.entity.CategoryEntity
 import com.thredge.backend.domain.repository.CategoryRepository
 import com.thredge.backend.domain.repository.ThreadRepository
+import com.thredge.backend.support.CategoryNameSupport
 import com.thredge.backend.support.ConflictException
 import com.thredge.backend.support.IdParser
 import com.thredge.backend.support.NotFoundException
@@ -22,11 +25,20 @@ class CategoryService(
         categoryRepository.findByOwnerUsernameOrderByName(ownerUsername)
             .map(categoryMapper::toSummary)
 
+    fun counts(ownerUsername: String): CategoryCountsResponse {
+        val counts = threadRepository.countThreadsByCategory(ownerUsername)
+            .map { CategoryCountSummary(id = it.getId().toString(), count = it.getCount()) }
+        val uncategorizedCount = threadRepository.countUncategorizedThreads(ownerUsername)
+        return CategoryCountsResponse(counts = counts, uncategorizedCount = uncategorizedCount)
+    }
+
     fun create(ownerUsername: String, request: CategoryRequest): CategorySummary {
-        val name = request.name.trim()
-        val existing = categoryRepository.findByOwnerUsernameAndNameIn(ownerUsername, listOf(name))
+        val name = CategoryNameSupport.normalize(request.name)
+        CategoryNameSupport.validateLength(name)
+        val existing = categoryRepository.findByOwnerUsernameOrderByName(ownerUsername)
+        val existingByKey = existing.associateBy { CategoryNameSupport.key(it.name) }
         val category =
-            existing.firstOrNull()
+            existingByKey[CategoryNameSupport.key(name)]
                 ?: categoryRepository.save(
                     CategoryEntity(
                         name = name,
@@ -44,10 +56,13 @@ class CategoryService(
         if (category.ownerUsername != ownerUsername) {
             throw NotFoundException("Category not found.")
         }
-        val name = request.name.trim()
-        if (category.name != name) {
-            val exists = categoryRepository.findByOwnerUsernameAndNameIn(ownerUsername, listOf(name))
-            if (exists.isNotEmpty()) {
+        val name = CategoryNameSupport.normalize(request.name)
+        CategoryNameSupport.validateLength(name)
+        val incomingKey = CategoryNameSupport.key(name)
+        if (CategoryNameSupport.key(category.name) != incomingKey) {
+            val existing = categoryRepository.findByOwnerUsernameOrderByName(ownerUsername)
+            val conflict = existing.firstOrNull { it.id != category.id && CategoryNameSupport.key(it.name) == incomingKey }
+            if (conflict != null) {
                 throw ConflictException("Category already exists.")
             }
         }

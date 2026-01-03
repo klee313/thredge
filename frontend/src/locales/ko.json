@@ -64,7 +64,8 @@
     "categoryPlaceholder": "새 카테고리",
     "addCategory": "추가",
     "loading": "불러오는 중…",
-    "error": "불러오기에 실패했어요"
+    "error": "불러오기에 실패했어요",
+    "loadMore": "더 보기"
   },
   "settings": {
     "title": "설정",
@@ -125,7 +126,8 @@
     "error": "불러오기에 실패했어요",
     "emptyThreads": "숨김 스레드가 없습니다.",
     "emptyEntries": "숨김 댓글이 없습니다.",
-    "lastActivity": "{{time}} 업데이트"
+    "lastActivity": "{{time}} 업데이트",
+    "loadMore": "더 보기"
   },
   "coachTone": {
     "warm": "따뜻함",

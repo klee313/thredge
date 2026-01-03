@@ -30,7 +30,7 @@ const invalidateKeys = async (
 export const useCategoryMutations = (options: CategoryMutationOptions = {}) => {
   const queryClient = useQueryClient()
 
-  const baseKeys: Array<readonly unknown[]> = [queryKeys.categories]
+  const baseKeys: Array<readonly unknown[]> = [queryKeys.categories, queryKeys.categoriesCounts]
   if (options.invalidateThreadsFeed) {
     baseKeys.push(queryKeys.threads.feed)
   }
