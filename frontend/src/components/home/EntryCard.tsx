@@ -4,6 +4,10 @@ import type { EntryCardActions, EntryCardData, EntryCardHelpers, EntryCardUi } f
 import { highlightMatches } from '../../lib/highlightMatches'
 import { isMutedText, stripMutedText, toggleMutedText } from '../../lib/mutedText'
 import eraserIcon from '../../assets/eraser.svg?raw'
+import minusIcon from '../../assets/minus.svg?raw'
+import xIcon from '../../assets/x.svg?raw'
+import chevronUpIcon from '../../assets/chevron-up.svg?raw'
+import chevronDownIcon from '../../assets/chevron-down.svg?raw'
 import { EntryEditor } from './EntryEditor'
 import { ReplyComposer } from './ReplyComposer'
 import { InlineIcon } from '../common/InlineIcon'
@@ -71,7 +75,7 @@ export function EntryCard({
           <InlineIcon svg={eraserIcon} className="[&>svg]:h-3.5 [&>svg]:w-3.5" />
         </button>
         <button
-          className={`rounded-full border px-1 py-0 text-[8px] ${
+          className={`flex h-4 w-4 items-center justify-center rounded-full border text-[8px] ${
             muted
               ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-on-primary)]'
               : 'border-[var(--theme-border)] text-[var(--theme-muted)]'
@@ -81,16 +85,16 @@ export function EntryCard({
           disabled={isEntryToggleMutePending}
           aria-label="Toggle strikethrough"
         >
-          -
+          <InlineIcon svg={minusIcon} className="[&>svg]:h-2.5 [&>svg]:w-2.5" />
         </button>
         <button
-          className="rounded-full border border-[var(--theme-border)] px-1 py-0 text-[8px] text-[var(--theme-muted)] hover:opacity-80"
+          className="flex h-4 w-4 items-center justify-center rounded-full border border-[var(--theme-border)] text-[8px] text-[var(--theme-muted)] hover:opacity-80"
           type="button"
           onClick={onHide}
           disabled={isEntryHidePending}
           aria-label={t('common.archive')}
         >
-          ×
+          <InlineIcon svg={xIcon} className="[&>svg]:h-2.5 [&>svg]:w-2.5" />
         </button>
       </div>
       <div className="absolute bottom-2 right-2 flex items-center gap-1">
@@ -103,7 +107,7 @@ export function EntryCard({
               disabled={isEntryMovePending || isMoveUpDisabled}
               aria-label={t('common.moveUp')}
             >
-              ^
+              <InlineIcon svg={chevronUpIcon} className="[&>svg]:h-3 [&>svg]:w-3" />
             </button>
             <button
               className="flex h-5 w-5 items-center justify-center rounded-full border border-[var(--theme-border)] text-[10px] text-[var(--theme-ink)] disabled:cursor-not-allowed disabled:opacity-40"
@@ -112,7 +116,7 @@ export function EntryCard({
               disabled={isEntryMovePending || isMoveDownDisabled}
               aria-label={t('common.moveDown')}
             >
-              v
+              <InlineIcon svg={chevronDownIcon} className="[&>svg]:h-3 [&>svg]:w-3" />
             </button>
           </>
         )}

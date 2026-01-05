@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import xIcon from '../../assets/x.svg?raw'
+import { InlineIcon } from '../common/InlineIcon'
 
 type CategoryItem = {
   id: string
@@ -129,7 +131,7 @@ export function CategoryFilterBar({
                   onClick={() => onDeleteCategory(category.id, category.name)}
                   aria-label={labels.deleteCategory}
                 >
-                  ×
+                  <InlineIcon svg={xIcon} className="[&>svg]:h-2.5 [&>svg]:w-2.5" />
                 </button>
               )}
             </div>

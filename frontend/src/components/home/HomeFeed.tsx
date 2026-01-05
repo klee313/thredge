@@ -14,10 +14,12 @@ import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { useTextareaAutosize } from '../../hooks/useTextareaAutosize'
 import { buildEntryDepthMap } from '../../lib/entryDepth'
 import { toggleMutedText } from '../../lib/mutedText'
+import xIcon from '../../assets/x.svg?raw'
 import { CategoryFilterBar } from './CategoryFilterBar'
 import { DateFilter } from './DateFilter'
 import { ThreadCard } from './ThreadCard'
 import { useDateFilter } from '../../hooks/useDateFilter'
+import { InlineIcon } from '../common/InlineIcon'
 import { useThreadActions } from '../../hooks/useThreadActions'
 import { THREAD_LIST_INVALIDATIONS } from '../../hooks/threadActionPresets'
 import { useHomeFeedState } from '../../hooks/useHomeFeedState'
@@ -556,7 +558,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   onClick={() => uiActions.setSearchQuery('')}
                   aria-label="Clear search"
                 >
-                  ×
+                  <InlineIcon svg={xIcon} className="[&>svg]:h-3 [&>svg]:w-3" />
                 </button>
               )}
             </div>

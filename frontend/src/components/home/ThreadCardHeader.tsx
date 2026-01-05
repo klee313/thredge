@@ -1,6 +1,8 @@
 import pinIcon from '../../assets/pin.svg?raw'
 import pinFilledIcon from '../../assets/pin-filled.svg?raw'
 import eraserIcon from '../../assets/eraser.svg?raw'
+import minusIcon from '../../assets/minus.svg?raw'
+import xIcon from '../../assets/x.svg?raw'
 import type { ThreadDetail } from '../../lib/api'
 import { isMutedText } from '../../lib/mutedText'
 import { uiTokens } from '../../lib/uiTokens'
@@ -89,7 +91,7 @@ export function ThreadCardHeader({
           <InlineIcon svg={eraserIcon} className="[&>svg]:h-3.5 [&>svg]:w-3.5" />
         </button>
         <button
-          className={`rounded-full border px-1 py-0 text-[9px] ${
+          className={`flex h-4 w-4 items-center justify-center rounded-full border text-[9px] ${
             isMutedText(thread.body)
               ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-on-primary)]'
               : 'border-[var(--theme-border)] text-[var(--theme-muted)]'
@@ -98,16 +100,16 @@ export function ThreadCardHeader({
           onClick={onToggleMute}
           aria-label="Toggle strikethrough"
         >
-          -
+          <InlineIcon svg={minusIcon} className="[&>svg]:h-2.5 [&>svg]:w-2.5" />
         </button>
         <button
-          className="rounded-full border border-[var(--theme-border)] px-1 py-0 text-[9px] text-[var(--theme-muted)]"
+          className="flex h-4 w-4 items-center justify-center rounded-full border border-[var(--theme-border)] text-[9px] text-[var(--theme-muted)]"
           type="button"
           onClick={onHide}
           disabled={isHidePending}
           aria-label={labels.archive}
         >
-          ×
+          <InlineIcon svg={xIcon} className="[&>svg]:h-2.5 [&>svg]:w-2.5" />
         </button>
       </div>
     </div>
