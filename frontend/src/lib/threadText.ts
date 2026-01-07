@@ -1,5 +1,5 @@
 export const getBodyWithoutTitle = (title: string, body: string) => {
-  const normalizedBody = body.replace(/\r\n/g, '\n')
+  const normalizedBody = body.replace(/\r\n/g, '\n').replace(/<br\s*\/?>|<\/p>/gi, '\n')
   const trimmedTitle = title.trim()
   if (!trimmedTitle) {
     return normalizedBody.trim()
@@ -17,7 +17,7 @@ export const getBodyWithoutTitle = (title: string, body: string) => {
 }
 
 export const deriveTitleFromBody = (body: string) => {
-  const normalizedBody = body.replace(/\r\n/g, '\n')
+  const normalizedBody = body.replace(/\r\n/g, '\n').replace(/<br\s*\/?>|<\/p>/gi, '\n')
   const firstLine = normalizedBody.split('\n').find((line) => line.trim().length > 0) ?? ''
   const source = firstLine.trim() || normalizedBody.trim()
   return source.slice(0, 200)

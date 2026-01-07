@@ -343,7 +343,7 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
                 : 'text-[var(--theme-ink)]'
             }
           >
-            {highlightMatches(displayTitle, normalizedSearchQuery)}
+            {highlightMatches(displayTitle, normalizedSearchQuery, { disableLinks: true })}
           </span>
         ) : (
           <Link
@@ -353,7 +353,7 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
               }`}
             to={linkTo}
           >
-            {highlightMatches(displayTitle, normalizedSearchQuery)}
+            {highlightMatches(displayTitle, normalizedSearchQuery, { disableLinks: true })}
           </Link>
         )}
       </div>

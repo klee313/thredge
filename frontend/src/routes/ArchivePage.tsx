@@ -102,7 +102,7 @@ export function ArchivePage() {
                   className="text-sm font-semibold text-[var(--theme-primary)] hover:underline"
                   to={`/threads/${thread.id}`}
                 >
-                  {highlightMatches(thread.title, threads.debouncedFilter)}
+                  {highlightMatches(thread.title, threads.debouncedFilter, { disableLinks: true })}
                 </Link>
                 <button
                   className="text-xs text-[var(--theme-primary)] underline"

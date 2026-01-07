@@ -4,6 +4,7 @@ plugins {
 	kotlin("plugin.spring") version "2.2.21"
 	id("org.springframework.boot") version "4.0.1"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("org.flywaydb.flyway") version "11.14.1"
 }
 
 group = "com.thredge"
@@ -14,6 +15,10 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
+}
+
+configurations {
+	maybeCreate("flyway")
 }
 
 repositories {
@@ -33,8 +38,9 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	runtimeOnly("org.postgresql:postgresql")
+	add("flyway", "org.flywaydb:flyway-database-postgresql:11.14.1")
+	add("flyway", "org.postgresql:postgresql")
 	testRuntimeOnly("com.h2database:h2")
-	testRuntimeOnly("org.flywaydb:flyway-database-h2")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
@@ -53,4 +59,11 @@ kotlin {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+flyway {
+	url = System.getenv("SPRING_DATASOURCE_URL") ?: "jdbc:postgresql://localhost:5433/thredge"
+	user = System.getenv("SPRING_DATASOURCE_USERNAME") ?: "thredge"
+	password = System.getenv("SPRING_DATASOURCE_PASSWORD") ?: "thredge"
+	locations = arrayOf("classpath:db/migration")
 }

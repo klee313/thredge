@@ -1,3 +1,4 @@
+
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -11,13 +12,13 @@ import {
   type FeedFilterOptions,
 } from '../../lib/api'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { useTextareaAutosize } from '../../hooks/useTextareaAutosize'
 import { buildEntryDepthMap } from '../../lib/entryDepth'
 import { toggleMutedText } from '../../lib/mutedText'
 import xIcon from '../../assets/x.svg?raw'
 import { CategoryFilterBar } from './CategoryFilterBar'
 import { DateFilter } from './DateFilter'
 import { ThreadCard } from './ThreadCard'
+import { NewThreadComposer } from './NewThreadComposer'
 import { useDateFilter } from '../../hooks/useDateFilter'
 import { InlineIcon } from '../common/InlineIcon'
 import { useThreadActions } from '../../hooks/useThreadActions'
@@ -76,7 +77,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
   }, [searchQuery])
 
   const normalizedSearchQuery = searchQuery.trim()
-  const { handleTextareaInput, resizeTextarea } = useTextareaAutosize() // Use it LOCALLY for the main input only
 
   const {
     selectedDate,
@@ -169,7 +169,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
   })
 
   const createThreadMutation = useMutation({
-    mutationFn: () => createThread(threadBody || null, newThreadCategoryNames),
+    mutationFn: (body: string) => createThread(body || null, newThreadCategoryNames),
     onSuccess: async (created) => {
       threadActions.setThreadBody('')
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.feed })
@@ -407,70 +407,54 @@ export function HomeFeed({ username }: HomeFeedProps) {
           </div>
         </div>
         {activeComposerTab === 'new' ? (
+          <div className="relative">
+            <NewThreadComposer
+              value={threadBody}
+              onChange={threadActions.setThreadBody}
+              onSubmit={(body) => {
+                threadActions.setThreadBody(body)
+                createThreadMutation.mutate(body)
+              }}
+              isSubmitting={createThreadMutation.isPending}
+            />
+          </div>
+        ) : (
           <form
-            className="mt-2 space-y-2 sm:mt-3"
+            className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center"
             onSubmit={(event) => {
               event.preventDefault()
-              if (!threadBody.trim()) {
-                return
-              }
-              createThreadMutation.mutate()
+              uiActions.setSearchQuery(localSearchQuery)
             }}
           >
-            <textarea
-              className="min-h-[96px] w-full resize-none overflow-y-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
-              placeholder={t('home.threadBodyPlaceholder')}
-              value={threadBody}
-              onChange={(event) => threadActions.setThreadBody(event.target.value)}
-              onInput={handleTextareaInput}
-              data-autoresize="true"
-              ref={(element) => resizeTextarea(element)}
-            />
+            <div className="relative w-full max-w-sm">
+              <input
+                className={`${uiTokens.input.base} ${uiTokens.input.paddingMdWide} pr-12`}
+                placeholder={t('home.searchPlaceholder')}
+                value={localSearchQuery}
+                onChange={(event) => setLocalSearchQuery(event.target.value)}
+              />
+              {localSearchQuery && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--theme-muted)] hover:opacity-80"
+                  type="button"
+                  onClick={() => {
+                    setLocalSearchQuery('')
+                    uiActions.setSearchQuery('')
+                  }}
+                  aria-label="Clear search"
+                >
+                  <InlineIcon svg={xIcon} className="[&>svg]:h-3 [&>svg]:w-3" />
+                </button>
+              )}
+            </div>
             <button
-              className={uiTokens.button.primaryMd}
+              className={`w-full sm:w-auto ${uiTokens.button.secondaryMd}`}
               type="submit"
-              disabled={createThreadMutation.isPending}
             >
-              {createThreadMutation.isPending ? t('common.loading') : t('home.createThread')}
+              {t('home.searchTab')}
             </button>
           </form>
-                ) : (
-                  <form
-                    className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      uiActions.setSearchQuery(localSearchQuery)
-                    }}
-                  >
-                    <div className="relative w-full max-w-sm">
-                      <input
-                        className={`${uiTokens.input.base} ${uiTokens.input.paddingMdWide} pr-12`}
-                        placeholder={t('home.searchPlaceholder')}
-                        value={localSearchQuery}
-                        onChange={(event) => setLocalSearchQuery(event.target.value)}
-                      />
-                      {localSearchQuery && (
-                        <button
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--theme-muted)] hover:opacity-80"
-                          type="button"
-                          onClick={() => {
-                            setLocalSearchQuery('')
-                            uiActions.setSearchQuery('')
-                          }}
-                          aria-label="Clear search"
-                        >
-                          <InlineIcon svg={xIcon} className="[&>svg]:h-3 [&>svg]:w-3" />
-                        </button>
-                      )}
-                    </div>
-                    <button
-                      className={`w-full sm:w-auto ${uiTokens.button.secondaryMd}`}
-                      type="submit"
-                    >
-                      {t('home.searchTab')}
-                    </button>
-                  </form>
-                )}      </div>
+        )}      </div>
       <div className={uiTokens.card.surface}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm font-semibold">
@@ -648,11 +632,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     }
                     createEntryMutation.mutate({ threadId: thread.id, body })
                   },
-                }}
-                helpers={{
-                  t,
-                  handleTextareaInput,
-                  resizeTextarea,
                 }}
               />
             )
