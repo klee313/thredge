@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import xIcon from '../../assets/x.svg?raw'
 import { InlineIcon } from '../common/InlineIcon'
 
+const searchIcon = `<svg viewBox="0 0 20 20" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M9 3.5a5.5 5.5 0 1 0 3.49 9.74l3.14 3.14a.75.75 0 0 0 1.06-1.06l-3.14-3.14A5.5 5.5 0 0 0 9 3.5Zm0 1.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" fill="currentColor"/></svg>`
+
 type CategoryItem = {
   id: string
   name: string
@@ -86,15 +88,41 @@ export function CategoryFilterBar({
   }, [categories, normalizedSearch])
   const shouldShowCreate =
     Boolean(trimmedSearch) && !hasExactCategoryMatch && Boolean(onCreateCategory)
+  const shouldEnableListScroll = isSearchFocused || isCategoryListExpanded
+  const shouldShowScrollHint =
+    shouldEnableListScroll && orderedCategories.length > categoryPreviewLimit
 
   return (
     <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-1.5 py-1 sm:px-5 sm:py-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-[var(--theme-muted)]">
+      <div className="relative">
+        <InlineIcon
+          svg={searchIcon}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--theme-muted)] [&>svg]:h-4 [&>svg]:w-4"
+        />
+        <input
+          className="w-full rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] py-2 pl-9 pr-3 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60 focus-visible:border-[var(--theme-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]/30"
+          type="search"
+          placeholder={labels.categorySearchPlaceholder}
+          value={searchQuery}
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
+          onChange={(event) => {
+            setIsCategoryListExpanded(false)
+            setSearchQuery(event.target.value)
+          }}
+        />
+      </div>
+      <div className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-muted)] opacity-70">
         {labels.title}
       </div>
-      <div className="mt-1 flex flex-wrap justify-center gap-2 sm:mt-2">
+      <div className="relative">
+        <div
+          className={`mt-2 flex flex-wrap justify-start gap-2 ${
+            shouldEnableListScroll ? 'max-h-40 overflow-y-auto pr-1 pb-8' : ''
+          }`}
+        >
         <button
-          className={`rounded-full border px-3 py-1 text-xs ${
+          className={`rounded-full border px-2.5 py-0.5 text-[11px] ${
             selectedCategories.includes(uncategorizedToken)
               ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-on-primary)]'
               : 'border-[var(--theme-border)] text-[var(--theme-ink)]'
@@ -118,7 +146,7 @@ export function CategoryFilterBar({
           return (
             <div key={category.id} className="relative flex items-center">
               <button
-                className={`rounded-full border px-3 py-1 text-xs ${
+                className={`rounded-full border px-2.5 py-0.5 text-[11px] ${
                   isSelected
                     ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-on-primary)]'
                     : 'border-[var(--theme-border)] text-[var(--theme-ink)]'
@@ -152,7 +180,7 @@ export function CategoryFilterBar({
         })}
         {shouldShowCategoryExpand && (
           <button
-            className="flex h-7 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
+            className="flex h-6 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[10px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
             type="button"
             onClick={() => setIsCategoryListExpanded(true)}
           >
@@ -162,7 +190,7 @@ export function CategoryFilterBar({
         {shouldShowCreate && (
           <div className="flex items-center gap-1">
             <button
-              className="flex h-7 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
+              className="flex h-6 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[10px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
               type="button"
               onClick={() => {
                 onCreateCategory?.(trimmedSearch)
@@ -173,7 +201,7 @@ export function CategoryFilterBar({
               '{trimmedSearch}' {labels.addCategory}
             </button>
             <button
-              className="flex h-7 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
+              className="flex h-6 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[10px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
               type="button"
               onClick={() => setSearchQuery('')}
               disabled={isCreateCategoryPending}
@@ -187,19 +215,10 @@ export function CategoryFilterBar({
             {labels.noCategories}
           </div>
         )}
-      </div>
-      <div className="mt-4 flex justify-center">
-        <input
-          className="w-[185px] rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] pl-6 pr-4 py-1.5 text-xs text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
-          placeholder={labels.categorySearchPlaceholder}
-          value={searchQuery}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
-          onChange={(event) => {
-            setIsCategoryListExpanded(false)
-            setSearchQuery(event.target.value)
-          }}
-        />
+        </div>
+        {shouldShowScrollHint && (
+          <div className="pointer-events-none absolute bottom-0 left-0 h-6 w-full rounded-md bg-gradient-to-t from-[var(--theme-surface)] to-transparent" />
+        )}
       </div>
     </div>
   )

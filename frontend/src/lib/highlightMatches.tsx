@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 
 export const highlightMatches = (text: string, query: string): ReactNode => {
+  const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text)
+  if (hasHtmlTags) {
+    return <span dangerouslySetInnerHTML={{ __html: text }} />
+  }
   if (!query) {
     return text
   }

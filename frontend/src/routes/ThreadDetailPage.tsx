@@ -24,6 +24,7 @@ import { useCategoryMutations } from '../hooks/useCategoryMutations'
 import { queryKeys } from '../lib/queryKeys'
 import { useEntryActions } from '../hooks/useEntryActions'
 import { removeEntryFromThreadDetail, updateEntryInThreadDetail } from '../lib/threadCache'
+import { highlightMatches } from '../lib/highlightMatches'
 
 export function ThreadDetailPage() {
   const { t } = useTranslation()
@@ -464,7 +465,7 @@ export function ThreadDetailPage() {
                         : 'text-[var(--theme-ink)]'
                     }`}
                   >
-                    {body}
+                    {highlightMatches(body, '')}
                   </p>
                 ) : null
               })()
