@@ -65,19 +65,48 @@ export function EntryCard({
   const pressStartRef = useRef<{ x: number; y: number } | null>(null)
   const pointerIdRef = useRef<number | null>(null)
   const pointerTargetRef = useRef<HTMLDivElement | null>(null)
+  const isLongPressActiveRef = useRef(false)
 
-  const clearPressTimer = () => {
+  const cleanupDrag = () => {
     if (pressTimerRef.current) {
       window.clearTimeout(pressTimerRef.current)
       pressTimerRef.current = null
     }
+    const target = pointerTargetRef.current
+    if (target) {
+      target.removeEventListener('touchmove', handleTouchMove)
+      const pointerId = pointerIdRef.current
+      if (pointerId !== null) {
+        try {
+          target.releasePointerCapture(pointerId)
+        } catch {
+          // Ignore release failures.
+        }
+      }
+    }
+    pressStartRef.current = null
+    pointerTargetRef.current = null
+    pointerIdRef.current = null
+    isLongPressActiveRef.current = false
+  }
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (isLongPressActiveRef.current && e.cancelable) {
+      e.preventDefault()
+    }
   }
 
   const shouldIgnorePress = (eventTarget: EventTarget | null) => {
-    if (!eventTarget || !(eventTarget instanceof HTMLElement)) {
+    let target = eventTarget as Node | null
+    if (target?.nodeType === 3) { // Node.TEXT_NODE
+      target = target.parentElement
+    }
+    if (!target || !(target instanceof HTMLElement)) {
       return false
     }
-    return Boolean(eventTarget.closest('button, input, textarea, a'))
+    return Boolean(
+      target.closest('button, input, textarea, a') || target.closest('[data-no-drag]'),
+    )
   }
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -87,9 +116,17 @@ export function EntryCard({
     pointerIdRef.current = event.pointerId
     pointerTargetRef.current = event.currentTarget
     pressStartRef.current = { x: event.clientX, y: event.clientY }
-    clearPressTimer()
+    isLongPressActiveRef.current = false
+
+    // Attach non-passive listener to block scroll
+    event.currentTarget.addEventListener('touchmove', handleTouchMove, { passive: false })
+
+    if (pressTimerRef.current) {
+      window.clearTimeout(pressTimerRef.current)
+    }
     pressTimerRef.current = window.setTimeout(() => {
       pressTimerRef.current = null
+      isLongPressActiveRef.current = true
       const target = pointerTargetRef.current
       const pointerId = pointerIdRef.current
       if (target && pointerId !== null) {
@@ -111,45 +148,23 @@ export function EntryCard({
       event.clientX - pressStartRef.current.x,
       event.clientY - pressStartRef.current.y,
     )
-    if (distance > 6) {
-      clearPressTimer()
-      pressStartRef.current = null
+    if (distance > 6 && !isLongPressActiveRef.current) {
+      cleanupDrag()
+      if (isDragActive) {
+        onDragEnd?.()
+      }
     }
   }
 
   const handlePointerUp = () => {
-    clearPressTimer()
-    pressStartRef.current = null
-    const target = pointerTargetRef.current
-    const pointerId = pointerIdRef.current
-    if (target && pointerId !== null) {
-      try {
-        target.releasePointerCapture(pointerId)
-      } catch {
-        // Ignore release failures.
-      }
-    }
-    pointerTargetRef.current = null
-    pointerIdRef.current = null
+    cleanupDrag()
     if (isDragActive) {
       onDragEnd?.()
     }
   }
 
   const handlePointerCancel = () => {
-    clearPressTimer()
-    pressStartRef.current = null
-    const target = pointerTargetRef.current
-    const pointerId = pointerIdRef.current
-    if (target && pointerId !== null) {
-      try {
-        target.releasePointerCapture(pointerId)
-      } catch {
-        // Ignore release failures.
-      }
-    }
-    pointerTargetRef.current = null
-    pointerIdRef.current = null
+    cleanupDrag()
     if (isDragActive) {
       onDragEnd?.()
     }
@@ -159,17 +174,13 @@ export function EntryCard({
     if (isDragActive) {
       return
     }
-    clearPressTimer()
-    pressStartRef.current = null
-    pointerTargetRef.current = null
-    pointerIdRef.current = null
+    cleanupDrag()
   }
 
   return (
     <div
-      className={`relative min-h-[65px] rounded-lg border px-1.5 py-1 pb-6 pr-16 shadow-sm sm:px-3 sm:py-2 sm:pb-6 sm:pr-20 ${themeEntryClass} ${indentClass} ${dragCursorClass} ${
-        isDraggingEntry ? 'opacity-70' : ''
-      }`}
+      className={`relative min-h-[65px] rounded-lg border px-1.5 py-1 pb-6 pr-16 shadow-sm sm:px-3 sm:py-2 sm:pb-6 sm:pr-20 ${themeEntryClass} ${indentClass} ${dragCursorClass} ${isDraggingEntry ? 'opacity-70' : ''
+        }`}
       data-entry-id={entry.id}
       data-entry-depth={depth}
       onPointerDown={handlePointerDown}
@@ -211,11 +222,11 @@ export function EntryCard({
       ) : (
         <>
           <div
-            className={`mb-2 whitespace-pre-wrap text-sm ${
-              muted
-                ? 'text-[var(--theme-muted)] opacity-50 line-through'
-                : 'text-[var(--theme-ink)]'
-            }`}
+            className={`mb-2 whitespace-pre-wrap text-sm ${muted
+              ? 'text-[var(--theme-muted)] opacity-50 line-through'
+              : 'text-[var(--theme-ink)]'
+              }`}
+            data-no-drag="true"
           >
             {highlightMatches(muted ? stripMutedText(entry.body) : entry.body, highlightQuery)}
           </div>

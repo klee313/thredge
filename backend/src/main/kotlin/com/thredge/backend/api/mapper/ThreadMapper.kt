@@ -3,6 +3,7 @@ package com.thredge.backend.api.mapper
 import com.thredge.backend.api.dto.CategorySummary
 import com.thredge.backend.api.dto.EntryDetail
 import com.thredge.backend.api.dto.ThreadDetail
+import com.thredge.backend.api.dto.ThreadFeedItem
 import com.thredge.backend.api.dto.ThreadSummary
 import com.thredge.backend.domain.entity.CategoryEntity
 import com.thredge.backend.domain.entity.EntryEntity
@@ -12,39 +13,54 @@ import org.springframework.stereotype.Component
 @Component
 class ThreadMapper {
     fun toCategorySummary(category: CategoryEntity): CategorySummary =
-        CategorySummary(
-            id = category.id.toString(),
-            name = category.name,
-        )
+            CategorySummary(
+                    id = category.id.toString(),
+                    name = category.name,
+            )
 
     fun toThreadSummary(thread: ThreadEntity): ThreadSummary =
-        ThreadSummary(
-            id = thread.id.toString(),
-            title = thread.title,
-            lastActivityAt = thread.lastActivityAt,
-            categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
-            pinned = thread.isPinned,
-        )
+            ThreadSummary(
+                    id = thread.id.toString(),
+                    title = thread.title,
+                    lastActivityAt = thread.lastActivityAt,
+                    categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
+                    pinned = thread.isPinned,
+            )
 
     fun toThreadDetail(thread: ThreadEntity, entries: List<EntryEntity>): ThreadDetail =
-        ThreadDetail(
-            id = thread.id.toString(),
-            title = thread.title,
-            body = thread.body,
-            createdAt = thread.createdAt,
-            lastActivityAt = thread.lastActivityAt,
-            categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
-            pinned = thread.isPinned,
-            entries = entries.filter { !it.isHidden }.map { toEntryDetail(it, null) },
-        )
+            ThreadDetail(
+                    id = thread.id.toString(),
+                    title = thread.title,
+                    body = thread.body,
+                    createdAt = thread.createdAt,
+                    lastActivityAt = thread.lastActivityAt,
+                    categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
+                    pinned = thread.isPinned,
+                    entries = entries.filter { !it.isHidden }.map { toEntryDetail(it, null) },
+            )
 
-    fun toEntryDetail(entry: EntryEntity, threadId: java.util.UUID? = entry.thread?.id): EntryDetail =
-        EntryDetail(
-            id = entry.id.toString(),
-            body = entry.body,
-            parentEntryId = entry.parentEntryId?.toString(),
-            orderIndex = entry.orderIndex,
-            createdAt = entry.createdAt,
-            threadId = threadId?.toString(),
-        )
+    fun toThreadFeedItem(thread: ThreadEntity, entryCount: Int): ThreadFeedItem =
+            ThreadFeedItem(
+                    id = thread.id.toString(),
+                    title = thread.title,
+                    body = thread.body,
+                    createdAt = thread.createdAt,
+                    lastActivityAt = thread.lastActivityAt,
+                    categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
+                    pinned = thread.isPinned,
+                    entryCount = entryCount,
+            )
+
+    fun toEntryDetail(
+            entry: EntryEntity,
+            threadId: java.util.UUID? = entry.thread?.id
+    ): EntryDetail =
+            EntryDetail(
+                    id = entry.id.toString(),
+                    body = entry.body,
+                    parentEntryId = entry.parentEntryId?.toString(),
+                    orderIndex = entry.orderIndex,
+                    createdAt = entry.createdAt,
+                    threadId = threadId?.toString(),
+            )
 }

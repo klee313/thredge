@@ -21,6 +21,7 @@ export const queryKeys = {
     hiddenSearchRoot: threadsHiddenSearchRoot,
     hiddenSearch: (query: string, categoryIds?: string[]) =>
       [...threadsHiddenSearchRoot, query, { categoryIds }] as const,
+    entries: (threadId: string) => ['threads', threadId, 'entries'] as const,
   },
   thread: {
     detail: (id?: string) => ['thread', id] as const,

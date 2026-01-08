@@ -7,6 +7,16 @@ plugins {
 	id("org.flywaydb.flyway") version "11.14.1"
 }
 
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath("org.flywaydb:flyway-database-postgresql:11.14.1")
+		classpath("org.postgresql:postgresql:42.7.8")
+	}
+}
+
 group = "com.thredge"
 version = "0.0.1-SNAPSHOT"
 description = "Demo project for Spring Boot"
@@ -15,10 +25,6 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
-}
-
-configurations {
-	maybeCreate("flyway")
 }
 
 repositories {
@@ -38,8 +44,6 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	runtimeOnly("org.postgresql:postgresql")
-	add("flyway", "org.flywaydb:flyway-database-postgresql:11.14.1")
-	add("flyway", "org.postgresql:postgresql")
 	testRuntimeOnly("com.h2database:h2")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
@@ -66,4 +70,8 @@ flyway {
 	user = System.getenv("SPRING_DATASOURCE_USERNAME") ?: "thredge"
 	password = System.getenv("SPRING_DATASOURCE_PASSWORD") ?: "thredge"
 	locations = arrayOf("classpath:db/migration")
+	sqlMigrationSuffixes = arrayOf(".postgresql.sql")
+	ignoreMigrationPatterns = arrayOf("*:missing")
+	validateOnMigrate = false
+	configurations = arrayOf("runtimeClasspath")
 }

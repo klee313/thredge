@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type JSX, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -321,9 +321,8 @@ export function ThreadDetailPage() {
   }
 
   const theme = {
-    card: `border-[var(--theme-border)] ${
-      threadQuery.data?.pinned ? 'bg-[var(--theme-base)]' : 'bg-[var(--theme-surface)]'
-    }`,
+    card: `border-[var(--theme-border)] ${threadQuery.data?.pinned ? 'bg-[var(--theme-base)]' : 'bg-[var(--theme-surface)]'
+      }`,
     entry: 'border-[var(--theme-border)] bg-[var(--theme-soft)]',
   }
 
@@ -353,40 +352,40 @@ export function ThreadDetailPage() {
       >
         <div className="pointer-events-none absolute left-0 top-0 h-0.5 w-full rounded-t-xl bg-[var(--theme-border)]" />
         {threadQuery.isLoading && <div>{t('common.loading')}</div>}
-              {threadQuery.isError && <div className="text-sm text-red-600">{t('thread.error')}</div>}
-              {threadQuery.data && (
-                <>
-                <ThreadCardHeader
-                  thread={threadQuery.data}
-                  isEditing={isEditingThread}
-                  editingThreadCategories={editingThreadCategories}
-                  isPinPending={pinThreadMutation.isPending}
-                  isUnpinPending={unpinThreadMutation.isPending}
-                  isHidePending={hideThreadMutation.isPending}
-                  labels={{
-                    pin: t('home.pin'),
-                    unpin: t('home.unpin'),
-                    edit: t('common.edit'),
-                    archive: t('common.archive'),
-                  }}
-                  onTogglePin={() => {
-                    if (threadQuery.data.pinned) {
-                      unpinThreadMutation.mutate(threadQuery.data.id)
-                    } else {
-                      pinThreadMutation.mutate(threadQuery.data.id)
-                    }
-                  }}
-                  onStartEdit={() => threadActions.startEditThread(threadQuery.data)}
-                  onHide={() => hideThreadMutation.mutate(threadQuery.data.id)}
-                  onEditingCategoryToggle={threadActions.toggleEditingCategory}
-                />
+        {threadQuery.isError && <div className="text-sm text-red-600">{t('thread.error')}</div>}
+        {threadQuery.data && (
+          <>
+            <ThreadCardHeader
+              thread={threadQuery.data}
+              isEditing={isEditingThread}
+              editingThreadCategories={editingThreadCategories}
+              isPinPending={pinThreadMutation.isPending}
+              isUnpinPending={unpinThreadMutation.isPending}
+              isHidePending={hideThreadMutation.isPending}
+              labels={{
+                pin: t('home.pin'),
+                unpin: t('home.unpin'),
+                edit: t('common.edit'),
+                archive: t('common.archive'),
+              }}
+              onTogglePin={() => {
+                if (threadQuery.data.pinned) {
+                  unpinThreadMutation.mutate(threadQuery.data.id)
+                } else {
+                  pinThreadMutation.mutate(threadQuery.data.id)
+                }
+              }}
+              onStartEdit={() => threadActions.startEditThread(threadQuery.data)}
+              onHide={() => hideThreadMutation.mutate(threadQuery.data.id)}
+              onEditingCategoryToggle={threadActions.toggleEditingCategory}
+            />
             <div className="mt-8 pl-3 text-sm font-semibold">
               {(() => {
                 const isThreadBodyMuted = isMutedText(threadQuery.data.body)
                 const rawBody = threadQuery.data.body
                   ? (isThreadBodyMuted
-                      ? stripMutedText(threadQuery.data.body)
-                      : threadQuery.data.body)
+                    ? stripMutedText(threadQuery.data.body)
+                    : threadQuery.data.body)
                   : null
                 const displayTitle = rawBody ? deriveTitleFromBody(rawBody) : threadQuery.data.title
                 return (
@@ -461,11 +460,10 @@ export function ThreadDetailPage() {
                 const body = getBodyWithoutTitle(displayTitle, normalizedBody)
                 return body ? (
                   <p
-                    className={`mt-2 whitespace-pre-wrap text-sm ${
-                      isBodyMuted
-                        ? 'text-[var(--theme-muted)] opacity-50 line-through'
-                        : 'text-[var(--theme-ink)]'
-                    }`}
+                    className={`mt-2 whitespace-pre-wrap text-sm ${isBodyMuted
+                      ? 'text-[var(--theme-muted)] opacity-50 line-through'
+                      : 'text-[var(--theme-ink)]'
+                      }`}
                   >
                     {highlightMatches(body, '')}
                   </p>
@@ -515,7 +513,7 @@ export function ThreadDetailPage() {
                           }),
                         onToggleMute: (nextBody) =>
                           toggleEntryMuteMutation.mutate({ entryId: entry.id, body: nextBody }),
-                        onHide: () => hideEntryMutation.mutate(entry.id),
+                        onHide: () => hideEntryMutation.mutate({ entryId: entry.id }),
                         onDragStart: handleDragStart,
                         onDragEnd: handleDragEnd,
                         onReplyStart: () => {
@@ -524,8 +522,8 @@ export function ThreadDetailPage() {
                         },
                         onReplyChange: (value) => replyActions.updateReplyDraft(entry.id, value),
                         onReplyCancel: replyActions.cancelReply,
-                        onReplySubmit: () => {
-                          const body = replyDrafts[entry.id]?.trim()
+                        onReplySubmit: (value: string) => {
+                          const body = value?.trim()
                           if (!body) {
                             return
                           }
@@ -534,10 +532,6 @@ export function ThreadDetailPage() {
                             parentEntryId: entry.id,
                           })
                         },
-                      }}
-                      helpers={{
-                        handleTextareaInput,
-                        resizeTextarea,
                       }}
                     />,
                   )
@@ -552,15 +546,13 @@ export function ThreadDetailPage() {
               value={entryBody}
               placeholder={t('common.entryPlaceholder')}
               onChange={entryActions.setEntryBody}
-              onSubmit={() =>
+              onSubmit={(value) =>
                 createEntryMutation.mutate({
-                  body: entryBody,
+                  body: value,
                 })
               }
               isSubmitting={createEntryMutation.isPending}
               labels={{ submit: t('common.addEntry'), submitting: t('common.loading') }}
-              handleTextareaInput={handleTextareaInput}
-              resizeTextarea={resizeTextarea}
               focusId={id ? `entry:${id}` : undefined}
               activeFocusId={entryComposerFocusId}
               onFocusHandled={() => setEntryComposerFocusId(null)}

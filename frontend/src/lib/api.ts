@@ -23,6 +23,8 @@ export type EntryDetail = {
   orderIndex: number
   createdAt: string
   threadId?: string | null
+  hidden?: boolean
+  isHidden?: boolean
 }
 export type EntryMoveDirection = 'UP' | 'DOWN'
 export type EntryMovePosition = 'BEFORE' | 'AFTER' | 'CHILD'
@@ -47,6 +49,16 @@ export type ThreadDetail = {
   categories: CategorySummary[]
   pinned: boolean
   entries: EntryDetail[]
+}
+export type ThreadFeedItem = {
+  id: string
+  title: string
+  body: string | null
+  createdAt: string
+  lastActivityAt: string
+  categories: CategorySummary[]
+  pinned: boolean
+  entryCount: number
 }
 export type PageResponse<T> = {
   items: T[]
@@ -204,7 +216,7 @@ export async function fetchThreadFeedPage(
   page: number,
   size: number = THREAD_PAGE_SIZE,
   filters?: FeedFilterOptions,
-): Promise<PageResponse<ThreadDetail>> {
+): Promise<PageResponse<ThreadFeedItem>> {
   let path = buildPagedPath('/api/threads/feed', page, size)
   if (filters?.date) {
     path += `&date=${encodeURIComponent(filters.date)}`
@@ -217,12 +229,16 @@ export async function fetchThreadFeedPage(
   return requestJson(path, {}, 'Thread feed fetch failed')
 }
 
+export async function fetchThreadEntries(threadId: string): Promise<EntryDetail[]> {
+  return requestJson(`/api/threads/${threadId}/entries`, {}, 'Thread entries fetch failed')
+}
+
 export async function searchThreadsPage(
   query: string,
   page: number,
   size: number = THREAD_PAGE_SIZE,
   categoryIds?: string[],
-): Promise<PageResponse<ThreadDetail>> {
+): Promise<PageResponse<ThreadFeedItem>> {
   let path = buildPagedPath(`/api/threads/search?query=${encodeURIComponent(query)}`, page, size)
   if (categoryIds && categoryIds.length > 0) {
     categoryIds.forEach((id) => {

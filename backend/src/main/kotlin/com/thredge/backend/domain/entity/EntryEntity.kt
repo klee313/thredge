@@ -17,49 +17,42 @@ import java.util.UUID
 
 @Entity
 @Table(
-    name = "entries",
-    indexes = [
-        Index(
-            name = "idx_entries_thread_created",
-            columnList = "thread_id, created_at",
-        ),
-        Index(
-            name = "idx_entries_thread_hidden_created",
-            columnList = "thread_id, is_hidden, created_at",
-        ),
-        Index(
-            name = "idx_entries_parent",
-            columnList = "parent_entry_id",
-        ),
-    ],
+        name = "entries",
+        indexes =
+                [
+                        Index(
+                                name = "idx_entries_thread_created",
+                                columnList = "thread_id, created_at",
+                        ),
+                        Index(
+                                name = "idx_entries_thread_hidden_created",
+                                columnList = "thread_id, is_hidden, created_at",
+                        ),
+                        Index(
+                                name = "idx_entries_parent",
+                                columnList = "parent_entry_id",
+                        ),
+                        Index(
+                                name = "idx_entries_thread_parent_order",
+                                columnList = "thread_id, parent_entry_id, order_index",
+                        ),
+                ],
 )
 class EntryEntity(
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "uuid")
-    var id: UUID? = null,
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "thread_id", nullable = false)
-    var thread: ThreadEntity? = null,
-
-    @Column(columnDefinition = "uuid")
-    var parentEntryId: UUID? = null,
-
-    @Column(columnDefinition = "text", nullable = false)
-    var body: String = "",
-
-    @Column(nullable = false)
-    var isHidden: Boolean = false,
-
-    @Column(name = "order_index", nullable = false)
-    var orderIndex: Long = 0,
-
-    @Column(nullable = false)
-    var createdAt: Instant = Instant.now(),
-
-    @Column(nullable = false)
-    var updatedAt: Instant = Instant.now(),
+        @Id
+        @GeneratedValue(strategy = GenerationType.UUID)
+        @Column(columnDefinition = "uuid")
+        var id: UUID? = null,
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "thread_id", nullable = false)
+        var thread: ThreadEntity? = null,
+        @Column(columnDefinition = "uuid") var parentEntryId: UUID? = null,
+        @Column(columnDefinition = "text", nullable = false) var body: String = "",
+        @Column(nullable = false) var isHidden: Boolean = false,
+        @Column(name = "order_index", nullable = false) var orderIndex: Long = 0,
+        @Column(nullable = false) var depth: Int = 1,
+        @Column(nullable = false) var createdAt: Instant = Instant.now(),
+        @Column(nullable = false) var updatedAt: Instant = Instant.now(),
 ) {
     @PrePersist
     fun onCreate() {

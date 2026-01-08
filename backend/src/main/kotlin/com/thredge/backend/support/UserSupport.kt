@@ -1,15 +1,20 @@
 package com.thredge.backend.support
 
-import com.thredge.backend.domain.repository.UserRepository
+import com.thredge.backend.security.CustomUserDetails
 import java.util.UUID
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 
 @Component
-class UserSupport(
-    private val userRepository: UserRepository,
-) {
+class UserSupport {
     fun requireUserId(username: String): UUID {
-        val user = userRepository.findByUsername(username) ?: throw NotFoundException("User not found.")
-        return user.id ?: throw NotFoundException("User not found.")
+        val authentication =
+                SecurityContextHolder.getContext().authentication
+                        ?: throw NotFoundException("User not found.")
+        val principal = authentication.principal
+        if (principal is CustomUserDetails && principal.username == username) {
+            return principal.userId
+        }
+        throw NotFoundException("User not found.")
     }
 }

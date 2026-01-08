@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useDebouncedValue } from '../../lib/useDebouncedValue'
 import { AutosizeTextarea } from '../common/AutosizeTextarea'
 import { uiTokens } from '../../lib/uiTokens'
 import type { ThreadEditorProps } from './types'
 
 export function ThreadEditor({
-  value,
+  value: initialValue,
   onChange,
   onSave,
   onCancel,
   onComplete,
   categories,
   selectedCategories,
-  editingCategoryInput,
+  editingCategoryInput: initialCategoryInput,
   isCreateCategoryPending,
   isSaving,
   buttonSize = 'sm',
@@ -21,11 +22,32 @@ export function ThreadEditor({
   onCategorySubmit,
   labels,
 }: ThreadEditorProps) {
+  const [localValue, setLocalValue] = useState(initialValue)
+  const debouncedValue = useDebouncedValue(localValue, 500)
+
+  const [localCategoryInput, setLocalCategoryInput] = useState(initialCategoryInput)
+  const debouncedCategoryInput = useDebouncedValue(localCategoryInput, 300)
+
   const [focusedCategoryIndex, setFocusedCategoryIndex] = useState(0)
   const [isCategoryInputFocused, setIsCategoryInputFocused] = useState(false)
   const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(false)
   const categoryPreviewLimit = 10
-  const trimmedCategoryInput = editingCategoryInput.trim()
+
+  // Sync local value to parent (debounced)
+  useEffect(() => {
+    if (debouncedValue !== initialValue) {
+      onChange(debouncedValue)
+    }
+  }, [debouncedValue, onChange, initialValue])
+
+  // Sync category input to parent (debounced)
+  useEffect(() => {
+    if (debouncedCategoryInput !== initialCategoryInput) {
+      onCategoryInputChange(debouncedCategoryInput)
+    }
+  }, [debouncedCategoryInput, onCategoryInputChange, initialCategoryInput])
+
+  const trimmedCategoryInput = localCategoryInput.trim()
   const normalizedCategoryInput = trimmedCategoryInput.toLowerCase()
   const matchingCategories = useMemo(() => {
     if (!normalizedCategoryInput) {
@@ -75,16 +97,17 @@ export function ThreadEditor({
       className="mt-2 space-y-2 sm:mt-3"
       onSubmit={(event) => {
         event.preventDefault()
-        if (!value.trim()) {
+        if (!localValue.trim()) {
           return
         }
-        onSave()
+        // Ensure we save the latest local value
+        onSave(localValue)
       }}
     >
       <AutosizeTextarea
         className="min-h-[96px] w-full resize-none overflow-y-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
-        value={value}
-        onChange={onChange}
+        value={localValue}
+        onChange={setLocalValue}
       />
       <div className="mt-4 py-2">
         <div className="space-y-2">
@@ -92,7 +115,7 @@ export function ThreadEditor({
             <input
               className="w-[110px] rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-1.5 text-xs text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
               placeholder={labels.categorySearchPlaceholder}
-              value={editingCategoryInput}
+              value={localCategoryInput}
               onFocus={() => {
                 setIsCategoryInputFocused(true)
                 if (availableCategories.length > 0) {
@@ -102,7 +125,7 @@ export function ThreadEditor({
               onBlur={() => setIsCategoryInputFocused(false)}
               onChange={(event) => {
                 setIsCategoryListExpanded(false)
-                onCategoryInputChange(event.target.value)
+                setLocalCategoryInput(event.target.value)
               }}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowRight') {
@@ -133,6 +156,7 @@ export function ThreadEditor({
                 event.preventDefault()
                 onToggleCategory(match.name)
                 if (normalizedCategoryInput) {
+                  setLocalCategoryInput('')
                   onCategoryInputChange('')
                 }
               }}
@@ -165,7 +189,11 @@ export function ThreadEditor({
                 <button
                   className="flex h-7 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
                   type="button"
-                  onClick={onCategorySubmit}
+                  onClick={() => {
+                    // Ensure immediate sync for submit
+                    onCategoryInputChange(localCategoryInput)
+                    onCategorySubmit()
+                  }}
                   disabled={isCreateCategoryPending}
                 >
                   '{trimmedCategoryInput}' {labels.addCategory}
@@ -173,7 +201,10 @@ export function ThreadEditor({
                 <button
                   className="flex h-7 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
                   type="button"
-                  onClick={onCategoryCancel}
+                  onClick={() => {
+                    onCategoryCancel()
+                    setLocalCategoryInput('')
+                  }}
                   disabled={isCreateCategoryPending}
                 >
                   {labels.cancelCategory}

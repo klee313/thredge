@@ -12,13 +12,13 @@ import {
   type FeedFilterOptions,
 } from '../../lib/api'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { buildEntryDepthMap } from '../../lib/entryDepth'
 import { toggleMutedText } from '../../lib/mutedText'
 import xIcon from '../../assets/x.svg?raw'
 import { CategoryFilterBar } from './CategoryFilterBar'
 import { DateFilter } from './DateFilter'
 import { ThreadCard } from './ThreadCard'
 import { NewThreadComposer } from './NewThreadComposer'
+import { SearchForm } from './SearchForm'
 import { useDateFilter } from '../../hooks/useDateFilter'
 import { InlineIcon } from '../common/InlineIcon'
 import { useThreadActions } from '../../hooks/useThreadActions'
@@ -70,11 +70,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
     ui: uiActions,
   } = actions
 
-  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
-
-  useEffect(() => {
-    setLocalSearchQuery(searchQuery)
-  }, [searchQuery])
 
   const normalizedSearchQuery = searchQuery.trim()
 
@@ -297,13 +292,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
     isSameCalendarDate,
   ])
 
-  const entryDepthByThreadId = useMemo(() => {
-    const map = new Map<string, Map<string, number>>()
-    filteredThreads.forEach((thread) => {
-      map.set(thread.id, buildEntryDepthMap(thread.entries))
-    })
-    return map
-  }, [filteredThreads])
+
 
   const categoryCountsById = useMemo(() => {
     const counts = categoryCountsQuery.data?.counts ?? []
@@ -419,41 +408,11 @@ export function HomeFeed({ username }: HomeFeedProps) {
             />
           </div>
         ) : (
-          <form
-            className="mt-3 flex flex-col items-center gap-2 sm:flex-row sm:justify-center"
-            onSubmit={(event) => {
-              event.preventDefault()
-              uiActions.setSearchQuery(localSearchQuery)
-            }}
-          >
-            <div className="relative w-full max-w-sm">
-              <input
-                className={`${uiTokens.input.base} ${uiTokens.input.paddingMdWide} pr-12`}
-                placeholder={t('home.searchPlaceholder')}
-                value={localSearchQuery}
-                onChange={(event) => setLocalSearchQuery(event.target.value)}
-              />
-              {localSearchQuery && (
-                <button
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--theme-muted)] hover:opacity-80"
-                  type="button"
-                  onClick={() => {
-                    setLocalSearchQuery('')
-                    uiActions.setSearchQuery('')
-                  }}
-                  aria-label="Clear search"
-                >
-                  <InlineIcon svg={xIcon} className="[&>svg]:h-3 [&>svg]:w-3" />
-                </button>
-              )}
-            </div>
-            <button
-              className={`w-full sm:w-auto ${uiTokens.button.secondaryMd}`}
-              type="submit"
-            >
-              {t('home.searchTab')}
-            </button>
-          </form>
+          <SearchForm
+            initialQuery={searchQuery}
+            onSearch={uiActions.setSearchQuery}
+            onClear={() => uiActions.setSearchQuery('')}
+          />
         )}      </div>
       <div className={uiTokens.card.surface}>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -505,7 +464,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
               card: `border-[var(--theme-border)] ${cardBg}`,
               entry: 'border-[var(--theme-border)] bg-[var(--theme-soft)]',
             }
-            const entryDepth = entryDepthByThreadId.get(thread.id) ?? new Map()
             const isEditing = editingThreadId === thread.id
 
             return (
@@ -516,7 +474,6 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   theme,
                   categories: categoriesQuery.data ?? [],
                   normalizedSearchQuery,
-                  entryDepth,
                   linkTo: `/threads/${thread.id}`,
                 }}
                 ui={{
@@ -555,12 +512,14 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     threadActions.setEditingCategoryInput('')
                   },
                   onEditingCategorySubmit: submitEditingCategory,
-                  onSaveEdit: () =>
+                  onSaveEdit: (value) => {
+                    threadActions.setEditingThreadBody(value)
                     updateThreadMutation.mutate({
                       threadId: thread.id,
-                      body: editingThreadBody,
+                      body: value,
                       categoryNames: editingThreadCategories,
-                    }),
+                    })
+                  },
                   onTogglePin: () => {
                     if (thread.pinned) {
                       unpinThreadMutation.mutate(thread.id)
@@ -590,15 +549,16 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     updateEntryMutation.mutate({
                       entryId,
                       body: editingEntryBody,
+                      threadId: thread.id,
                     })
                   },
                   onEntryToggleMute: (entryId, body) => {
                     if (!body) {
                       return
                     }
-                    toggleEntryMuteMutation.mutate({ entryId, body })
+                    toggleEntryMuteMutation.mutate({ entryId, body, threadId: thread.id })
                   },
-                  onEntryHide: (entryId) => hideEntryMutation.mutate(entryId),
+                  onEntryHide: (entryId) => hideEntryMutation.mutate({ entryId, threadId: thread.id }),
                   onEntryMoveTo: async (entryId, targetEntryId, position, threadId) => {
                     await moveEntryToMutation.mutateAsync({
                       entryId,
@@ -613,11 +573,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
                   },
                   onReplyChange: (entryId, value) => replyActions.updateReplyDraft(entryId, value),
                   onReplyCancel: replyActions.cancelReply,
-                  onReplySubmit: (entryId) => {
-                    const body = replyDrafts[entryId]?.trim()
+                  onReplySubmit: (entryId, value) => {
+                    const body = value.trim()
                     if (!body) {
                       return
                     }
+                    replyActions.updateReplyDraft(entryId, body)
                     createEntryMutation.mutate({
                       threadId: thread.id,
                       body,
@@ -625,11 +586,12 @@ export function HomeFeed({ username }: HomeFeedProps) {
                     })
                   },
                   onNewEntryChange: (value) => entryActions.updateEntryDraft(thread.id, value),
-                  onNewEntrySubmit: () => {
-                    const body = entryDrafts[thread.id]?.trim()
+                  onNewEntrySubmit: (value) => {
+                    const body = value.trim()
                     if (!body) {
                       return
                     }
+                    entryActions.updateEntryDraft(thread.id, body)
                     createEntryMutation.mutate({ threadId: thread.id, body })
                   },
                 }}

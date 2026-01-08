@@ -2,12 +2,12 @@ import pinIcon from '../../assets/pin.svg?raw'
 import pinFilledIcon from '../../assets/pin-filled.svg?raw'
 import eraserIcon from '../../assets/eraser.svg?raw'
 import xIcon from '../../assets/x.svg?raw'
-import type { ThreadDetail } from '../../lib/api'
+import type { ThreadFeedItem, ThreadDetail } from '../../lib/api'
 import { uiTokens } from '../../lib/uiTokens'
 import { InlineIcon } from '../common/InlineIcon'
 
 type ThreadCardHeaderProps = {
-  thread: ThreadDetail
+  thread: ThreadFeedItem | ThreadDetail
   isEditing: boolean
   editingThreadCategories: string[]
   isPinPending: boolean
@@ -42,11 +42,10 @@ export function ThreadCardHeader({
     <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-2">
       <div className="flex flex-wrap items-center gap-1.5">
         <button
-          className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-            thread.pinned
-              ? 'border-[var(--theme-primary)] text-[var(--theme-primary)]'
-              : 'border-[var(--theme-border)] text-[var(--theme-muted)]'
-          }`}
+          className={`flex h-5 w-5 items-center justify-center rounded-full border ${thread.pinned
+            ? 'border-[var(--theme-primary)] text-[var(--theme-primary)]'
+            : 'border-[var(--theme-border)] text-[var(--theme-muted)]'
+            }`}
           type="button"
           onClick={onTogglePin}
           disabled={isPinPending || isUnpinPending}
@@ -59,23 +58,23 @@ export function ThreadCardHeader({
         </button>
         {isEditing
           ? editingThreadCategories.map((categoryName) => (
-              <button
-                key={categoryName}
-                className={uiTokens.tag.solid}
-                type="button"
-                onClick={() => onEditingCategoryToggle(categoryName)}
-              >
-                {categoryName}
-              </button>
-            ))
+            <button
+              key={categoryName}
+              className={uiTokens.tag.solid}
+              type="button"
+              onClick={() => onEditingCategoryToggle(categoryName)}
+            >
+              {categoryName}
+            </button>
+          ))
           : thread.categories.map((category) => (
-              <span
-                key={category.id}
-                className={uiTokens.tag.outline}
-              >
-                {category.name}
-              </span>
-            ))}
+            <span
+              key={category.id}
+              className={uiTokens.tag.outline}
+            >
+              {category.name}
+            </span>
+          ))}
       </div>
       <div className="flex items-center gap-1.5">
         <button

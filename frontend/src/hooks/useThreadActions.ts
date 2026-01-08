@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ThreadSummary } from '../lib/api'
+import type { EntryDetail, ThreadSummary } from '../lib/api'
 import {
   hideEntry,
   hideThread,
@@ -9,6 +9,7 @@ import {
   updateThread,
 } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
+import { removeThreadFromFeed } from '../lib/threadCache'
 
 export type InvalidateTarget =
   | 'feed'
@@ -37,6 +38,9 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
 
   const invalidateThreadKeys = async (threadId?: string | null) => {
     const id = threadId ?? options.threadId
+    if (id) {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.threads.entries(id) })
+    }
     if (shouldInvalidate('thread') && id) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.thread.detail(id) })
     }
@@ -92,6 +96,7 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
   const hideThreadMutation = useMutation({
     mutationFn: (threadId: string) => hideThread(threadId),
     onSuccess: async (_, threadId) => {
+      removeThreadFromFeed(queryClient, threadId)
       options.onThreadHidden?.(threadId)
       await invalidateThreadKeys(threadId)
     },
@@ -114,28 +119,34 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
   })
 
   const updateEntryMutation = useMutation({
-    mutationFn: ({ entryId, body }: { entryId: string; body: string }) =>
+    mutationFn: ({ entryId, body }: { entryId: string; body: string; threadId?: string }) =>
       updateEntry(entryId, body),
     onSuccess: async (_, variables) => {
       options.onEntryUpdated?.(variables.entryId, variables.body)
-      await invalidateThreadKeys(options.threadId)
+      await invalidateThreadKeys(variables.threadId ?? options.threadId)
     },
   })
 
   const toggleEntryMuteMutation = useMutation({
-    mutationFn: ({ entryId, body }: { entryId: string; body: string }) =>
+    mutationFn: ({ entryId, body }: { entryId: string; body: string; threadId?: string }) =>
       updateEntry(entryId, body),
     onSuccess: async (_, variables) => {
       options.onEntryUpdated?.(variables.entryId, variables.body)
-      await invalidateThreadKeys(options.threadId)
+      await invalidateThreadKeys(variables.threadId ?? options.threadId)
     },
   })
 
   const hideEntryMutation = useMutation({
-    mutationFn: (entryId: string) => hideEntry(entryId),
-    onSuccess: async (_, entryId) => {
-      options.onEntryHidden?.(entryId)
-      await invalidateThreadKeys(options.threadId)
+    mutationFn: ({ entryId }: { entryId: string; threadId?: string }) => hideEntry(entryId),
+    onSuccess: async (_, variables) => {
+      const threadId = variables.threadId ?? options.threadId
+      if (threadId) {
+        queryClient.setQueryData<EntryDetail[]>(queryKeys.threads.entries(threadId), (old) =>
+          old ? old.filter((e) => e.id !== variables.entryId) : [],
+        )
+      }
+      options.onEntryHidden?.(variables.entryId)
+      await invalidateThreadKeys(threadId)
     },
   })
 

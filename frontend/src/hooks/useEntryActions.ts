@@ -46,6 +46,9 @@ export const useEntryActions = (options: EntryActionsOptions = {}) => {
 
   const invalidateEntryKeys = async (threadId?: string | null) => {
     const id = threadId ?? options.threadId
+    if (id) {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.threads.entries(id) })
+    }
     if (shouldInvalidate('thread') && id) {
       await queryClient.invalidateQueries({ queryKey: queryKeys.thread.detail(id) })
     }

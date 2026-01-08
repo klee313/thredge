@@ -25,9 +25,10 @@ const updateFeedPages = (
 }
 
 export const removeThreadFromFeed = (queryClient: QueryClient, threadId: string) => {
-  queryClient.setQueryData(queryKeys.threads.feed, (data) => {
-    return updateFeedPages(data, (items) => items.filter((thread) => thread.id !== threadId))
-  })
+  const updater = (data: any) =>
+    updateFeedPages(data, (items) => items.filter((thread) => thread.id !== threadId))
+  queryClient.setQueriesData({ queryKey: queryKeys.threads.feed }, updater)
+  queryClient.setQueriesData({ queryKey: queryKeys.threads.searchRoot }, updater)
 }
 
 export const setThreadPinnedInFeed = (
@@ -70,11 +71,11 @@ export const updateEntryPositionInFeed = (
         entries: thread.entries.map((item) =>
           item.id === entry.id
             ? {
-                ...item,
-                parentEntryId: entry.parentEntryId,
-                orderIndex: entry.orderIndex,
-                createdAt: entry.createdAt,
-              }
+              ...item,
+              parentEntryId: entry.parentEntryId,
+              orderIndex: entry.orderIndex,
+              createdAt: entry.createdAt,
+            }
             : item,
         ),
       })),
@@ -128,11 +129,11 @@ export const updateEntryPositionInThreadDetail = (
       entries: thread.entries.map((item) =>
         item.id === entry.id
           ? {
-              ...item,
-              parentEntryId: entry.parentEntryId,
-              orderIndex: entry.orderIndex,
-              createdAt: entry.createdAt,
-            }
+            ...item,
+            parentEntryId: entry.parentEntryId,
+            orderIndex: entry.orderIndex,
+            createdAt: entry.createdAt,
+          }
           : item,
       ),
     }

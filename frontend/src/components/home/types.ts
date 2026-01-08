@@ -41,7 +41,7 @@ export type EntryCardActions = {
   onReplyStart: () => void
   onReplyChange: (value: string) => void
   onReplyCancel: () => void
-  onReplySubmit: () => void
+  onReplySubmit: (value: string) => void
 }
 
 export type EntryCardProps = {
@@ -64,7 +64,7 @@ export type ThreadEditorLabels = {
 export type ThreadEditorProps = {
   value: string
   onChange: (value: string) => void
-  onSave: () => void
+  onSave: (value: string) => void
   onCancel: () => void
   onComplete: () => void
   categories: CategorySummary[]

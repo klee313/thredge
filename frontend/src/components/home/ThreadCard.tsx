@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
-import { useEffect, useMemo, useRef, useState, memo } from 'react'
+import { type JSX, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { CategorySummary, EntryMovePosition, ThreadDetail } from '../../lib/api'
+import { useQuery } from '@tanstack/react-query'
+import { fetchThreadEntries, type CategorySummary, type EntryMovePosition, type ThreadFeedItem, type EntryDetail } from '../../lib/api'
+import { queryKeys } from '../../lib/queryKeys'
 import { highlightMatches } from '../../lib/highlightMatches'
 import { deriveTitleFromBody, getBodyWithoutTitle } from '../../lib/threadText'
 import { isMutedText, stripMutedText } from '../../lib/mutedText'
 import { buildEntryOrder } from '../../lib/entryOrder'
+import { buildEntryDepthMap } from '../../lib/entryDepth'
 import { EntryCard } from './EntryCard'
 import { ThreadCardHeader } from './ThreadCardHeader'
 import { ThreadEditor } from './ThreadEditor'
@@ -14,11 +17,10 @@ import { EntryComposer } from './EntryComposer'
 import type { EntryDragState } from './types'
 
 type ThreadCardData = {
-  thread: ThreadDetail
+  thread: ThreadFeedItem
   theme: { card: string; entry: string }
   categories: CategorySummary[]
   normalizedSearchQuery: string
-  entryDepth: Map<string, number>
   linkTo: string
 }
 
@@ -57,7 +59,7 @@ type ThreadCardActions = {
   onEditingCategoryInputChange: (value: string) => void
   onEditingCategoryCancel: () => void
   onEditingCategorySubmit: () => void
-  onSaveEdit: () => void
+  onSaveEdit: (value: string) => void
   onTogglePin: () => void
   onToggleMute: () => void
   onHide: () => void
@@ -76,9 +78,9 @@ type ThreadCardActions = {
   onReplyStart: (entryId: string) => void
   onReplyChange: (entryId: string, value: string) => void
   onReplyCancel: () => void
-  onReplySubmit: (entryId: string) => void
+  onReplySubmit: (entryId: string, value: string) => void
   onNewEntryChange: (value: string) => void
-  onNewEntrySubmit: () => void
+  onNewEntrySubmit: (value: string) => void
 }
 
 type ThreadCardProps = {
@@ -93,7 +95,6 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
     theme,
     categories,
     normalizedSearchQuery,
-    entryDepth,
     linkTo,
   } = data
   const {
@@ -155,7 +156,17 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
   const isThreadBodyMuted = isMutedText(thread.body)
   const rawBody = thread.body ? (isThreadBodyMuted ? stripMutedText(thread.body) : thread.body) : null
   const displayTitle = rawBody ? deriveTitleFromBody(rawBody) : thread.title
-  const orderedEntries = useMemo(() => buildEntryOrder(thread.entries), [thread.entries])
+  const entriesQuery = useQuery({
+    queryKey: queryKeys.threads.entries(thread.id),
+    queryFn: () => fetchThreadEntries(thread.id),
+  })
+  const entries: EntryDetail[] = entriesQuery.data ?? []
+  const visibleEntries = useMemo(
+    () => entries.filter((e) => !e.hidden && !e.isHidden),
+    [entries],
+  )
+  const orderedEntries = useMemo(() => buildEntryOrder(visibleEntries), [visibleEntries])
+  const entryDepth = useMemo(() => buildEntryDepthMap(visibleEntries), [visibleEntries])
   const [dragState, setDragState] = useState<EntryDragState>({
     activeEntryId: null,
     overEntryId: null,
@@ -445,7 +456,7 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
                   onReplyStart: () => onReplyStart(entry.id),
                   onReplyChange: (value) => onReplyChange(entry.id, value),
                   onReplyCancel: onReplyCancel,
-                  onReplySubmit: () => onReplySubmit(entry.id),
+                  onReplySubmit: (value) => onReplySubmit(entry.id, value),
                 }}
               />,
             )
