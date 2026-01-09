@@ -7,7 +7,6 @@ import {
   fetchCategories,
   fetchThread,
 } from '../lib/api'
-import { useTextareaAutosize } from '../hooks/useTextareaAutosize'
 import { useThreadActions } from '../hooks/useThreadActions'
 import { THREAD_DETAIL_INVALIDATIONS } from '../hooks/threadActionPresets'
 import { EntryCard } from '../components/home/EntryCard'
@@ -25,6 +24,7 @@ import { queryKeys } from '../lib/queryKeys'
 import { useEntryActions } from '../hooks/useEntryActions'
 import { removeEntryFromThreadDetail, updateEntryInThreadDetail } from '../lib/threadCache'
 import { highlightMatches } from '../lib/highlightMatches'
+import { Tooltip } from '../components/common/Tooltip'
 
 export function ThreadDetailPage() {
   const { t } = useTranslation()
@@ -51,9 +51,6 @@ export function ThreadDetailPage() {
     entry: entryActions,
     reply: replyActions,
   } = actions
-  const { handleTextareaInput, resizeTextarea } = useTextareaAutosize({
-    deps: [editingThreadBody, editingEntryBody, replyDrafts, entryBody],
-  })
 
   const threadQuery = useQuery({
     queryKey: queryKeys.thread.detail(id),
@@ -130,14 +127,7 @@ export function ThreadDetailPage() {
     onThreadHidden: () => {
       navigate('/')
     },
-    onEntryUpdated: (entryId, body) => {
-      if (editingEntryId === entryId) {
-        entryActions.cancelEntryEdit()
-      }
-      if (id) {
-        updateEntryInThreadDetail(queryClient, id, entryId, body)
-      }
-    },
+    // onEntryUpdated removed - handled locally
     onEntryHidden: (entryId) => {
       if (id) {
         removeEntryFromThreadDetail(queryClient, id, entryId)
@@ -332,17 +322,21 @@ export function ThreadDetailPage() {
         <button
           className="text-sm text-[var(--theme-muted)]"
           type="button"
-          onClick={() => navigate('/')}
+          onClick={() => navigate(-1)}
         >
           {t('thread.back')}
         </button>
         {threadQuery.data && (
-          <div className="text-xs text-[var(--theme-muted)] opacity-50">
-            {t('thread.lastActivity', {
-              time: formatDistanceToNow(new Date(threadQuery.data.lastActivityAt), {
-                addSuffix: true,
-              }),
-            })}
+          <div className="text-xs text-[var(--theme-muted)]">
+            <Tooltip content={new Date(threadQuery.data.lastActivityAt).toLocaleString()}>
+              <span className="opacity-50">
+                {t('thread.lastActivity', {
+                  time: formatDistanceToNow(new Date(threadQuery.data.lastActivityAt), {
+                    addSuffix: true,
+                  }),
+                })}
+              </span>
+            </Tooltip>
           </div>
         )}
       </div>
@@ -446,8 +440,6 @@ export function ThreadDetailPage() {
                   cancelCategory: t('common.cancel'),
                   loadMore: t('home.loadMore'),
                 }}
-                handleTextareaInput={handleTextareaInput}
-                resizeTextarea={resizeTextarea}
               />
             ) : (
               threadQuery.data.body &&
@@ -504,15 +496,35 @@ export function ThreadDetailPage() {
                       }}
                       actions={{
                         onEditStart: () => entryActions.startEntryEdit(entry),
-                        onEditChange: entryActions.setEditingEntryBody,
+                        onEditChange: (val) => {
+                          entryActions.setEditingEntryBody(val)
+                        },
                         onEditCancel: entryActions.cancelEntryEdit,
-                        onEditSave: () =>
-                          updateEntryMutation.mutate({
+                        onEditSave: async () => {
+                          try {
+                            const updated = await updateEntryMutation.mutateAsync({
+                              entryId: entry.id,
+                              body: editingEntryBody,
+                              threadId: id,
+                            })
+                            if (id) {
+                              updateEntryInThreadDetail(queryClient, id, entry.id, updated.body)
+                            }
+                            entryActions.cancelEntryEdit()
+                          } catch (error) {
+                            console.error('ThreadDetailPage: onEditSave error', error)
+                          }
+                        },
+                        onToggleMute: async (nextBody) => {
+                          const updated = await toggleEntryMuteMutation.mutateAsync({
                             entryId: entry.id,
-                            body: editingEntryBody,
-                          }),
-                        onToggleMute: (nextBody) =>
-                          toggleEntryMuteMutation.mutate({ entryId: entry.id, body: nextBody }),
+                            body: nextBody,
+                            threadId: id,
+                          })
+                          if (id) {
+                            updateEntryInThreadDetail(queryClient, id, entry.id, updated.body)
+                          }
+                        },
                         onHide: () => hideEntryMutation.mutate({ entryId: entry.id }),
                         onDragStart: handleDragStart,
                         onDragEnd: handleDragEnd,
@@ -557,12 +569,16 @@ export function ThreadDetailPage() {
               activeFocusId={entryComposerFocusId}
               onFocusHandled={() => setEntryComposerFocusId(null)}
             />
-            <div className="mt-2 text-xs text-[var(--theme-muted)] opacity-50 sm:mt-4">
-              {t('home.lastActivity', {
-                time: formatDistanceToNow(new Date(threadQuery.data.lastActivityAt), {
-                  addSuffix: true,
-                }),
-              })}
+            <div className="mt-2 text-xs text-[var(--theme-muted)] sm:mt-4">
+              <Tooltip content={new Date(threadQuery.data.lastActivityAt).toLocaleString()}>
+                <span className="opacity-50">
+                  {t('home.lastActivity', {
+                    time: formatDistanceToNow(new Date(threadQuery.data.lastActivityAt), {
+                      addSuffix: true,
+                    }),
+                  })}
+                </span>
+              </Tooltip>
             </div>
           </>
         )}
