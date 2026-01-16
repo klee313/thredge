@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 
 // URL regex: stops before <, >, whitespace, or end of string
-const URL_REGEX = /(https?:\/\/[^\s<>]+)/g
+// Matches http(s) URLs or /threads/{uuid}
+const URL_REGEX = /(https?:\/\/[^\s<>]+|\/threads\/[0-9a-fA-F-]{36})/g
 
 // Internal helper for highlighting only
 const applyHighlighting = (text: string, query: string): ReactNode => {
@@ -44,10 +45,10 @@ export const highlightMatches = (
 ): ReactNode => {
   // Linkify URLs that aren't already inside <a> tags
   const linkifiedText = text.replace(
-    /(<a\s[^>]*>.*?<\/a>)|(https?:\/\/[^\s<>]+)/gi,
-    (_match, existingAnchor, url) => {
+    /(<a\s[^>]*>.*?<\/a>)|(https?:\/\/[^\s<>]+|\/threads\/[0-9a-fA-F-]{36})/gi,
+    (_match, existingAnchor, urlOrPath) => {
       if (existingAnchor) return existingAnchor // Already wrapped, keep as-is
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all" onclick="event.stopPropagation()">${url}</a>`
+      return `<a href="${urlOrPath}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all" onclick="event.stopPropagation()">${urlOrPath}</a>`
     },
   )
 

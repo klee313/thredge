@@ -25,6 +25,7 @@ type HomeFeedDrafts = {
   threadBody: string
   entryDrafts: Record<string, string>
   replyDrafts: Record<string, string>
+  searchDraft?: string
   editingThreadId?: string | null
   editingThreadBody?: string
   editingThreadCategories?: string[]
@@ -76,6 +77,7 @@ export const useHomeFeedState = () => {
   }, [categoryPath, queryCategories])
 
   const searchQuery = searchParams.get('q') ?? ''
+  const [searchDraft, setSearchDraft] = useState(() => searchQuery || storedDrafts?.searchDraft || '')
   const activeComposerTab = (searchParams.get('tab') as 'new' | 'search') ?? 'new' // 'tab' param for UI state
 
   const setSelectedCategories: React.Dispatch<React.SetStateAction<string[]>> = useCallback((update) => {
@@ -89,6 +91,7 @@ export const useHomeFeedState = () => {
   }, [navigate, searchParams, selectedCategories])
 
   const setSearchQueryState = useCallback((query: string) => {
+    setSearchDraft(query)
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev)
       if (query) {
@@ -176,6 +179,61 @@ export const useHomeFeedState = () => {
     }))
   }
 
+  const persistDraftsNow = useCallback((overrides?: Partial<HomeFeedDrafts>) => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const payload: HomeFeedDrafts = {
+      threadBody,
+      entryDrafts,
+      replyDrafts: replyDraft.state.replyDrafts,
+      searchDraft,
+      editingThreadId,
+      editingThreadBody,
+      editingThreadCategories,
+      editingCategoryInput,
+      isAddingEditingCategory,
+      editingEntryId,
+      editingEntryBody,
+    }
+    const nextPayload: HomeFeedDrafts = {
+      ...payload,
+      ...overrides,
+      entryDrafts: overrides?.entryDrafts ?? payload.entryDrafts,
+      replyDrafts: overrides?.replyDrafts ?? payload.replyDrafts,
+    }
+    const hasDrafts =
+      Boolean(nextPayload.threadBody.trim()) ||
+      Boolean(nextPayload.searchDraft?.trim()) ||
+      Boolean(nextPayload.editingThreadId) ||
+      Boolean(nextPayload.editingEntryId) ||
+      Boolean(nextPayload.editingThreadBody?.trim()) ||
+      (nextPayload.editingThreadCategories?.length ?? 0) > 0 ||
+      Boolean(nextPayload.editingCategoryInput?.trim()) ||
+      Boolean(nextPayload.isAddingEditingCategory) ||
+      Boolean(nextPayload.editingEntryBody?.trim()) ||
+      Object.values(nextPayload.entryDrafts ?? {}).some((value) => value.trim()) ||
+      Object.values(nextPayload.replyDrafts ?? {}).some((value) => value.trim())
+
+    if (!hasDrafts) {
+      window.localStorage.removeItem(STORAGE_KEY)
+      return
+    }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPayload))
+  }, [
+    entryDrafts,
+    editingCategoryInput,
+    editingEntryBody,
+    editingEntryId,
+    editingThreadBody,
+    editingThreadCategories,
+    editingThreadId,
+    isAddingEditingCategory,
+    replyDraft.state.replyDrafts,
+    searchDraft,
+    threadBody,
+  ])
+
   useEffect(() => {
     if (hasRestoredFromStorage.current) {
       return
@@ -217,8 +275,9 @@ export const useHomeFeedState = () => {
     if (typeof window === 'undefined') {
       return
     }
-    const hasDrafts =
+  const hasDrafts =
       Boolean(threadBody.trim()) ||
+      Boolean(searchDraft.trim()) ||
       Boolean(editingThreadId) ||
       Boolean(editingEntryId) ||
       Boolean(editingThreadBody.trim()) ||
@@ -238,6 +297,7 @@ export const useHomeFeedState = () => {
         threadBody,
         entryDrafts,
         replyDrafts: replyDraft.state.replyDrafts,
+        searchDraft,
         editingThreadId,
         editingThreadBody,
         editingThreadCategories,
@@ -252,6 +312,7 @@ export const useHomeFeedState = () => {
     return () => clearTimeout(timer)
   }, [
     threadBody,
+    searchDraft,
     editingThreadId,
     editingThreadBody,
     editingThreadCategories,
@@ -278,6 +339,7 @@ export const useHomeFeedState = () => {
       editingEntryId: entryEditor.state.editingEntryId,
       editingEntryBody: entryEditor.state.editingEntryBody,
       searchQuery,
+      searchDraft,
       activeComposerTab,
     },
     actions: {
@@ -309,7 +371,9 @@ export const useHomeFeedState = () => {
       },
       ui: {
         setSearchQuery: setSearchQueryState,
+        setSearchDraft,
         setActiveComposerTab: setActiveComposerTabState,
+        persistDraftsNow,
       },
     },
   }

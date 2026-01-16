@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   useEntryEditingState,
   useReplyDraftState,
@@ -74,6 +74,55 @@ export const useThreadDetailState = (threadId?: string) => {
     setIsEditingThread(false)
     threadEditor.actions.cancelEditThread(thread)
   }
+
+  const persistDraftsNow = useCallback((overrides?: Partial<ThreadDetailDrafts>) => {
+    if (typeof window === 'undefined' || !storageKey) {
+      return
+    }
+    const payload: ThreadDetailDrafts = {
+      entryBody,
+      replyDrafts: replyDraft.state.replyDrafts,
+      isEditingThread,
+      editingThreadBody,
+      editingThreadCategories,
+      editingCategoryInput,
+      isAddingEditingCategory,
+      editingEntryId,
+      editingEntryBody,
+    }
+    const nextPayload: ThreadDetailDrafts = {
+      ...payload,
+      ...overrides,
+      replyDrafts: overrides?.replyDrafts ?? payload.replyDrafts,
+    }
+    const hasDrafts =
+      Boolean(nextPayload.entryBody.trim()) ||
+      Boolean(nextPayload.isEditingThread) ||
+      Boolean(nextPayload.editingThreadBody?.trim()) ||
+      (nextPayload.editingThreadCategories?.length ?? 0) > 0 ||
+      Boolean(nextPayload.editingCategoryInput?.trim()) ||
+      Boolean(nextPayload.isAddingEditingCategory) ||
+      Boolean(nextPayload.editingEntryId) ||
+      Boolean(nextPayload.editingEntryBody?.trim()) ||
+      Object.values(nextPayload.replyDrafts ?? {}).some((value) => value.trim())
+
+    if (!hasDrafts) {
+      window.localStorage.removeItem(storageKey)
+      return
+    }
+    window.localStorage.setItem(storageKey, JSON.stringify(nextPayload))
+  }, [
+    editingCategoryInput,
+    editingEntryBody,
+    editingEntryId,
+    editingThreadBody,
+    editingThreadCategories,
+    entryBody,
+    isAddingEditingCategory,
+    isEditingThread,
+    replyDraft.state.replyDrafts,
+    storageKey,
+  ])
 
   useEffect(() => {
     if (!storageKey) {
@@ -188,6 +237,9 @@ export const useThreadDetailState = (threadId?: string) => {
         startReply: replyDraft.actions.startReply,
         cancelReply: replyDraft.actions.cancelReply,
         updateReplyDraft: replyDraft.actions.updateReplyDraft,
+      },
+      ui: {
+        persistDraftsNow,
       },
     },
   }

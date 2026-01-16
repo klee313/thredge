@@ -50,6 +50,7 @@ export function ThreadDetailPage() {
     thread: threadActions,
     entry: entryActions,
     reply: replyActions,
+    ui: uiActions,
   } = actions
 
   const threadQuery = useQuery({
@@ -97,9 +98,13 @@ export function ThreadDetailPage() {
       if (variables.parentEntryId) {
         replyActions.updateReplyDraft(variables.parentEntryId, '')
         replyActions.cancelReply()
+        uiActions.persistDraftsNow({
+          replyDrafts: { ...replyDrafts, [variables.parentEntryId]: '' },
+        })
       } else {
         entryActions.setEntryBody('')
         setEntryComposerFocusId(`entry:${variables.threadId}`)
+        uiActions.persistDraftsNow({ entryBody: '' })
       }
     },
   })
@@ -373,16 +378,20 @@ export function ThreadDetailPage() {
               onHide={() => hideThreadMutation.mutate(threadQuery.data.id)}
               onEditingCategoryToggle={threadActions.toggleEditingCategory}
             />
-            <div className="mt-8 pl-3 text-sm font-semibold">
-              {(() => {
-                const isThreadBodyMuted = isMutedText(threadQuery.data.body)
-                const rawBody = threadQuery.data.body
-                  ? (isThreadBodyMuted
-                    ? stripMutedText(threadQuery.data.body)
-                    : threadQuery.data.body)
-                  : null
-                const displayTitle = rawBody ? deriveTitleFromBody(rawBody) : threadQuery.data.title
-                return (
+            {(() => {
+              const isThreadBodyMuted = isMutedText(threadQuery.data.body)
+              const rawBody = threadQuery.data.body
+                ? (isThreadBodyMuted
+                  ? stripMutedText(threadQuery.data.body)
+                  : threadQuery.data.body)
+                : null
+              const derivedTitle = rawBody ? deriveTitleFromBody(rawBody) : null
+              const displayTitle = rawBody ? derivedTitle : threadQuery.data.title
+              if (!displayTitle) {
+                return null
+              }
+              return (
+                <div className="mt-8 pl-3 text-sm font-semibold">
                   <span
                     className={
                       isThreadBodyMuted
@@ -392,9 +401,9 @@ export function ThreadDetailPage() {
                   >
                     {displayTitle}
                   </span>
-                )
-              })()}
-            </div>
+                </div>
+              )
+            })()}
             {isEditingThread ? (
               <ThreadEditor
                 value={editingThreadBody}
@@ -448,11 +457,12 @@ export function ThreadDetailPage() {
                 const normalizedBody = isBodyMuted
                   ? stripMutedText(threadQuery.data.body)
                   : threadQuery.data.body
-                const displayTitle = deriveTitleFromBody(normalizedBody)
-                const body = getBodyWithoutTitle(displayTitle, normalizedBody)
+                const derivedTitle = deriveTitleFromBody(normalizedBody)
+                const body = derivedTitle ? getBodyWithoutTitle(derivedTitle, normalizedBody) : normalizedBody.trim()
+                const bodySpacing = derivedTitle ? 'mt-2' : 'mt-8'
                 return body ? (
                   <p
-                    className={`mt-2 whitespace-pre-wrap text-sm ${isBodyMuted
+                    className={`${bodySpacing} whitespace-pre-wrap text-sm ${isBodyMuted
                       ? 'text-[var(--theme-muted)] opacity-50 line-through'
                       : 'text-[var(--theme-ink)]'
                       }`}

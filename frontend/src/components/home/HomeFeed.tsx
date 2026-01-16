@@ -59,6 +59,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
     editingEntryId,
     editingEntryBody,
     searchQuery,
+    searchDraft,
     activeComposerTab,
   } = state
   const {
@@ -165,6 +166,7 @@ export function HomeFeed({ username }: HomeFeedProps) {
     mutationFn: (body: string) => createThread(body || null, newThreadCategoryNames),
     onSuccess: async (created) => {
       threadActions.setThreadBody('')
+      uiActions.persistDraftsNow({ threadBody: '' })
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.feed })
       await queryClient.invalidateQueries({ queryKey: queryKeys.threads.searchRoot })
       await queryClient.invalidateQueries({ queryKey: queryKeys.categories })
@@ -204,9 +206,15 @@ export function HomeFeed({ username }: HomeFeedProps) {
       if (variables.parentEntryId) {
         replyActions.updateReplyDraft(variables.parentEntryId, '')
         replyActions.cancelReply()
+        uiActions.persistDraftsNow({
+          replyDrafts: { ...replyDrafts, [variables.parentEntryId]: '' },
+        })
       } else {
         entryActions.updateEntryDraft(variables.threadId, '')
         setEntryComposerFocusId(`entry:${variables.threadId}`)
+        uiActions.persistDraftsNow({
+          entryDrafts: { ...entryDrafts, [variables.threadId]: '' },
+        })
       }
     },
   })
@@ -410,7 +418,8 @@ export function HomeFeed({ username }: HomeFeedProps) {
           </div>
         ) : (
           <SearchForm
-            initialQuery={searchQuery}
+            value={searchDraft}
+            onChange={uiActions.setSearchDraft}
             onSearch={uiActions.setSearchQuery}
             onClear={() => uiActions.setSearchQuery('')}
           />

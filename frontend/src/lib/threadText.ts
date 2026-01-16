@@ -17,7 +17,22 @@ export const getBodyWithoutTitle = (title: string, body: string) => {
 
 export const deriveTitleFromBody = (body: string) => {
   const normalizedBody = body.replace(/\r\n/g, '\n').replace(/<br\s*\/?>|<\/p>/gi, '\n')
-  const firstLine = normalizedBody.split('\n').find((line) => line.trim().length > 0) ?? ''
-  const source = firstLine.trim() || normalizedBody.trim()
-  return source.slice(0, 200)
+  const lines = normalizedBody.split('\n')
+  const firstIndex = lines.findIndex((line) => line.trim().length > 0)
+  if (firstIndex === -1) {
+    return null
+  }
+  const firstLine = lines[firstIndex].trim()
+  if (firstLine.length > 100) {
+    return null
+  }
+  const nextIndex = lines.slice(firstIndex + 1).findIndex((line) => line.trim().length > 0)
+  if (nextIndex === -1) {
+    return null
+  }
+  const secondIndex = firstIndex + 1 + nextIndex
+  if (secondIndex < firstIndex + 2) {
+    return null
+  }
+  return firstLine
 }

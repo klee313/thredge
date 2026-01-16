@@ -156,7 +156,8 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
   // Let's import useTranslation.
   const isThreadBodyMuted = isMutedText(thread.body)
   const rawBody = thread.body ? (isThreadBodyMuted ? stripMutedText(thread.body) : thread.body) : null
-  const displayTitle = rawBody ? deriveTitleFromBody(rawBody) : thread.title
+  const derivedTitle = rawBody ? deriveTitleFromBody(rawBody) : null
+  const displayTitle = rawBody ? derivedTitle : thread.title
   const entriesQuery = useQuery({
     queryKey: queryKeys.threads.entries(thread.id),
     queryFn: () => fetchThreadEntries(thread.id),
@@ -346,29 +347,31 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
         onHide={onHide}
         onEditingCategoryToggle={onEditingCategoryToggle}
       />
-      <div className="mt-8 pl-3 text-sm font-semibold">
-        {isEditing ? (
-          <span
-            className={
-              isThreadBodyMuted
+      {displayTitle && (
+        <div className="mt-8 pl-3 text-sm font-semibold">
+          {isEditing ? (
+            <span
+              className={
+                isThreadBodyMuted
+                  ? 'text-[var(--theme-muted)] opacity-50 line-through'
+                  : 'text-[var(--theme-ink)]'
+              }
+            >
+              {highlightMatches(displayTitle, normalizedSearchQuery, { disableLinks: true })}
+            </span>
+          ) : (
+            <Link
+              className={`hover:underline ${isThreadBodyMuted
                 ? 'text-[var(--theme-muted)] opacity-50 line-through'
                 : 'text-[var(--theme-ink)]'
-            }
-          >
-            {highlightMatches(displayTitle, normalizedSearchQuery, { disableLinks: true })}
-          </span>
-        ) : (
-          <Link
-            className={`hover:underline ${isThreadBodyMuted
-              ? 'text-[var(--theme-muted)] opacity-50 line-through'
-              : 'text-[var(--theme-ink)]'
-              }`}
-            to={linkTo}
-          >
-            {highlightMatches(displayTitle, normalizedSearchQuery, { disableLinks: true })}
-          </Link>
-        )}
-      </div>
+                }`}
+              to={linkTo}
+            >
+              {highlightMatches(displayTitle, normalizedSearchQuery, { disableLinks: true })}
+            </Link>
+          )}
+        </div>
+      )}
       {isEditing ? (
         <ThreadEditor
           value={editingThreadBody}
@@ -400,13 +403,16 @@ export const ThreadCard = memo(function ThreadCard({ data, ui, actions }: Thread
         (() => {
           const normalizedBody =
             thread.body && isThreadBodyMuted ? stripMutedText(thread.body) : thread.body
-          const body = normalizedBody ? getBodyWithoutTitle(displayTitle, normalizedBody) : ''
+          const body = normalizedBody
+            ? (derivedTitle ? getBodyWithoutTitle(derivedTitle, normalizedBody) : normalizedBody.trim())
+            : ''
           const hasHtmlLineBreaks = /<(p|br)\s*\/?>/i.test(body)
           // Decode HTML entities
           const processedBody = hasHtmlLineBreaks ? body.replace(/\r?\n/g, '') : body
+          const bodySpacing = displayTitle ? 'mt-2' : 'mt-8'
           return processedBody.trim() ? (
             <p
-              className={`mt-2 whitespace-pre-wrap text-sm ${isThreadBodyMuted
+              className={`${bodySpacing} whitespace-pre-wrap text-sm ${isThreadBodyMuted
                 ? 'text-[var(--theme-muted)] opacity-50 line-through'
                 : 'text-[var(--theme-ink)]'
                 }`}
