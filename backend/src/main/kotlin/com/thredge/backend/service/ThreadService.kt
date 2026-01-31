@@ -117,6 +117,7 @@ class ThreadService(
             ownerUsername: String,
             query: String,
             categoryIds: List<String>?,
+            date: LocalDate?,
             pageable: Pageable
     ): PageResponse<ThreadFeedItem> {
         val ownerId = userSupport.requireUserId(ownerUsername)
@@ -127,6 +128,9 @@ class ThreadService(
                 parsedIds?.filter { it.toString() != "__uncategorized__" }?.takeIf {
                     it.isNotEmpty()
                 }
+        val zone = ZoneId.systemDefault()
+        val startAt = date?.atStartOfDay(zone)?.toInstant() ?: openEndedStartAt
+        val endAt = date?.plusDays(1)?.atStartOfDay(zone)?.toInstant() ?: openEndedEndAt
 
         val slice =
                 threadRepository.searchVisibleThreads(
@@ -134,6 +138,8 @@ class ThreadService(
                         trimmedQuery,
                         filteredIds,
                         includeUncategorized,
+                        startAt,
+                        endAt,
                         pageable
                 )
         val feedItems = buildThreadFeedItems(slice.content)

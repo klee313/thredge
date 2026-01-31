@@ -16,6 +16,7 @@ import { useArchivedSearch } from '../hooks/useArchivedSearch'
 import { queryKeys } from '../lib/queryKeys'
 import { uiTokens } from '../lib/uiTokens'
 import { Tooltip } from '../components/common/Tooltip'
+import { ErrorNotice } from '../components/common/ErrorNotice'
 
 export function ArchivePage() {
   const { t } = useTranslation()
@@ -25,15 +26,15 @@ export function ArchivePage() {
   const threads = useArchivedSearch({
     queryKey: queryKeys.threads.hidden,
     searchKey: queryKeys.threads.hiddenSearch,
-    fetchAll: (page) => fetchHiddenThreadsPage(page),
-    search: (query, page) => searchHiddenThreadsPage(query, page),
+    fetchAll: (page, options) => fetchHiddenThreadsPage(page, undefined, options),
+    search: (query, page, options) => searchHiddenThreadsPage(query, page, undefined, undefined, options),
   })
 
   const entries = useArchivedSearch({
     queryKey: queryKeys.entries.hidden,
     searchKey: queryKeys.entries.hiddenSearch,
-    fetchAll: (page) => fetchHiddenEntriesPage(page),
-    search: (query, page) => searchHiddenEntriesPage(query, page),
+    fetchAll: (page, options) => fetchHiddenEntriesPage(page, undefined, options),
+    search: (query, page, options) => searchHiddenEntriesPage(query, page, undefined, options),
   })
 
   const restoreThreadMutation = useMutation({
@@ -92,7 +93,7 @@ export function ArchivePage() {
               {t('archive.loading')}
             </div>
           )}
-          {threads.isError && <div className="text-sm text-red-600">{t('archive.error')}</div>}
+          {threads.isError && <ErrorNotice message={t('archive.error')} />}
           {threads.filtered.map((thread) => (
             <div
               key={thread.id}
@@ -141,7 +142,9 @@ export function ArchivePage() {
             <button
               className={uiTokens.button.secondarySm}
               type="button"
-              onClick={() => threads.fetchNextPage()}
+              onClick={() => {
+                void threads.fetchNextPage()
+              }}
               disabled={threads.isFetchingNextPage}
             >
               {threads.isFetchingNextPage ? t('common.loading') : t('archive.loadMore')}
@@ -169,7 +172,7 @@ export function ArchivePage() {
               {t('archive.loading')}
             </div>
           )}
-          {entries.isError && <div className="text-sm text-red-600">{t('archive.error')}</div>}
+          {entries.isError && <ErrorNotice message={t('archive.error')} />}
           {entries.filtered.map((entry) => (
             <div
               key={entry.id}
@@ -214,7 +217,9 @@ export function ArchivePage() {
             <button
               className={uiTokens.button.secondarySm}
               type="button"
-              onClick={() => entries.fetchNextPage()}
+              onClick={() => {
+                void entries.fetchNextPage()
+              }}
               disabled={entries.isFetchingNextPage}
             >
               {entries.isFetchingNextPage ? t('common.loading') : t('archive.loadMore')}

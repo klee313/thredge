@@ -21,7 +21,6 @@ export type UiThemeColors = {
 }
 
 export const uiThemePresets: UiThemePreset[] = [
-  { id: 'original', name: 'Original', primary: '#111827' },
   { id: 'graphite', name: 'Graphite', primary: '#111827' },
   { id: 'slate', name: 'Slate', primary: '#334155' },
   { id: 'midnight', name: 'Midnight', primary: '#1f2937' },
@@ -93,6 +92,13 @@ const luminance = (hex: string) => {
 }
 
 const resolveOnPrimary = (primary: string) => (luminance(primary) > 0.6 ? '#111827' : '#ffffff')
+const contrastRatio = (hexA: string, hexB: string) => {
+  const l1 = luminance(hexA)
+  const l2 = luminance(hexB)
+  const bright = Math.max(l1, l2)
+  const dark = Math.min(l1, l2)
+  return (bright + 0.05) / (dark + 0.05)
+}
 
 export const buildThemeFromPrimary = (primary: string): UiThemeColors => {
   const normalized = normalizeHexColor(primary) ?? DEFAULT_PRIMARY
@@ -135,6 +141,18 @@ export const applyTheme = (theme: UiThemeColors) => {
   root.style.setProperty('--theme-soft', theme.soft)
   root.style.setProperty('--theme-surface', theme.surface)
   root.style.setProperty('--theme-border', theme.border)
+  if (import.meta.env?.DEV) {
+    const primaryContrast = contrastRatio(theme.primary, theme.onPrimary)
+    const baseContrast = contrastRatio(theme.base, theme.ink)
+    const surfaceContrast = contrastRatio(theme.surface, theme.ink)
+    if (primaryContrast < 4.5 || baseContrast < 4.5 || surfaceContrast < 4.5) {
+      console.warn('[uiTheme] Low contrast detected', {
+        primaryContrast,
+        baseContrast,
+        surfaceContrast,
+      })
+    }
+  }
 }
 
 export const normalizeThemeHex = normalizeHexColor

@@ -6,8 +6,8 @@ import type { PageResponse } from '../lib/api'
 type ArchivedSearchOptions<T> = {
   queryKey: readonly unknown[]
   searchKey: (query: string) => readonly unknown[]
-  fetchAll: (page: number) => Promise<PageResponse<T>>
-  search: (query: string, page: number) => Promise<PageResponse<T>>
+  fetchAll: (page: number, options?: { signal?: AbortSignal }) => Promise<PageResponse<T>>
+  search: (query: string, page: number, options?: { signal?: AbortSignal }) => Promise<PageResponse<T>>
   debounceMs?: number
 }
 
@@ -23,18 +23,20 @@ export const useArchivedSearch = <T>({
 
   const baseQuery = useInfiniteQuery<PageResponse<T>, Error, { pages: PageResponse<T>[]; pageParams: number[] }, readonly unknown[], number>({
     queryKey,
-    queryFn: ({ pageParam }) => fetchAll(pageParam),
+    queryFn: ({ pageParam, signal }) => fetchAll(pageParam, { signal }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
     enabled: debouncedFilter.length === 0,
+    meta: { suppressGlobalError: true },
   })
 
   const searchQuery = useInfiniteQuery<PageResponse<T>, Error, { pages: PageResponse<T>[]; pageParams: number[] }, readonly unknown[], number>({
     queryKey: searchKey(debouncedFilter),
-    queryFn: ({ pageParam }) => search(debouncedFilter, pageParam),
+    queryFn: ({ pageParam, signal }) => search(debouncedFilter, pageParam, { signal }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.hasNext ? lastPage.page + 1 : undefined),
     enabled: debouncedFilter.length > 0,
+    meta: { suppressGlobalError: true },
   })
 
   const filtered = useMemo(() => {

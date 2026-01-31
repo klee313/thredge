@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { AutosizeTextarea } from '../common/AutosizeTextarea'
+import { useCallback, useRef } from 'react'
+import { ComposerTextarea } from '../common/ComposerTextarea'
 import { uiTokens } from '../../lib/uiTokens'
+import { useDebouncedTextInput } from '../../hooks/useDebouncedTextInput'
+import { useComposerFocus } from '../../hooks/useComposerFocus'
 
 type EntryComposerLabels = {
   submit: string
@@ -34,37 +35,26 @@ export function EntryComposer({
   onFocusHandled,
 }: EntryComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const [localValue, setLocalValue] = useState(initialValue)
-  const debouncedValue = useDebouncedValue(localValue, 500)
+  const { localValue, setLocalValue, reset } = useDebouncedTextInput({
+    value: initialValue,
+    onChange,
+    delayMs: 500,
+    isLocked: isSubmitting,
+  })
 
-  // Sync prop changes to local (in case of draft load)
-  useEffect(() => {
-    if (isSubmitting) {
-      return
-    }
-    if (initialValue !== debouncedValue && initialValue !== localValue) {
-      setLocalValue(initialValue)
-    }
-  }, [initialValue, isSubmitting])
+  const focusElement = useCallback(() => {
+    const element = textareaRef.current
+    element?.focus({ preventScroll: true })
+    element?.scrollIntoView({ block: 'center', inline: 'nearest' })
+  }, [])
 
-  // Sync to parent (debounced) - only when stable
-  useEffect(() => {
-    if (debouncedValue === localValue && debouncedValue !== initialValue) {
-      onChange(debouncedValue)
-    }
-  }, [debouncedValue, onChange, initialValue, localValue])
-
-  useEffect(() => {
-    if (!focusId || focusId !== activeFocusId) {
-      return
-    }
-    if (!localValue.trim()) {
-      const element = textareaRef.current
-      element?.focus({ preventScroll: true })
-      element?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-      onFocusHandled?.()
-    }
-  }, [activeFocusId, focusId, onFocusHandled, localValue])
+  useComposerFocus({
+    focusId,
+    activeFocusId,
+    onFocusHandled,
+    shouldFocus: !isSubmitting && !localValue.trim(),
+    focusElement,
+  })
 
   return (
     <form
@@ -75,12 +65,13 @@ export function EntryComposer({
           return
         }
         onSubmit(localValue)
-        setLocalValue('') // Clear local on submit
+        reset('')
       }}
     >
-      <AutosizeTextarea
-        className="min-h-[72px] w-full resize-none overflow-y-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
+      <ComposerTextarea
+        minHeightClass="min-h-[72px]"
         placeholder={placeholder}
+        ariaLabel={placeholder}
         value={localValue}
         onChange={setLocalValue}
         inputRef={(element) => {

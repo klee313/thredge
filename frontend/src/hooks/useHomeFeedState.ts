@@ -1,25 +1,16 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useState, useMemo, useCallback } from 'react'
 import {
   useEntryEditingState,
   useReplyDraftState,
   useThreadEditingState,
 } from './useThreadUiState'
+import { useHomeFeedUrlState } from './useHomeFeedUrlState'
+import { readVersionedDraft } from '../lib/draftStorage'
+import { useDraftPersistence } from './useDraftPersistence'
 
-const STORAGE_KEY = 'thredge.homeFeedDrafts'
-
-const parseCategoryPath = (value?: string) => {
-  if (!value) {
-    return []
-  }
-  return value
-    .split(',')
-    .map((item) => decodeURIComponent(item))
-    .filter(Boolean)
-}
-
-const buildCategoryPath = (names: string[]) =>
-  names.map((name) => encodeURIComponent(name)).join(',')
+const STORAGE_KEY_PREFIX = 'thredge.homeFeedDrafts:'
+const LEGACY_STORAGE_KEY = 'thredge.homeFeedDrafts'
+const STORAGE_VERSION = 1
 
 type HomeFeedDrafts = {
   threadBody: string
@@ -35,114 +26,35 @@ type HomeFeedDrafts = {
   editingEntryBody?: string
 }
 
+
 type ThreadLike = {
   id: string
   body?: string | null
   categories: { name: string }[]
 }
 
-export const useHomeFeedState = () => {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const { categoryPath } = useParams<{ categoryPath?: string }>()
-  const navigate = useNavigate()
-  const hasRestoredFromStorage = useRef(false)
+export const useHomeFeedState = (storageScope?: string) => {
+  const storageKey = useMemo(
+    () => `${STORAGE_KEY_PREFIX}${storageScope ?? 'anon'}`,
+    [storageScope],
+  )
 
+  const legacyKey = storageScope ? null : LEGACY_STORAGE_KEY
   const storedDrafts = useMemo<HomeFeedDrafts | null>(() => {
-    if (typeof window === 'undefined') {
-      return null
-    }
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      return null
-    }
-    try {
-      return JSON.parse(raw) as HomeFeedDrafts
-    } catch {
-      return null
-    }
-  }, [])
+    return readVersionedDraft<HomeFeedDrafts>([storageKey, legacyKey], STORAGE_VERSION)
+  }, [legacyKey, storageKey])
 
   const [threadBody, setThreadBody] = useState(() => storedDrafts?.threadBody ?? '')
-  // URL-synced states
-  const queryCategories = useMemo(
-    () => searchParams.get('c')?.split(',').filter(Boolean) ?? [],
-    [searchParams],
-  )
-  const selectedCategories = useMemo(() => {
-    const pathCategories = parseCategoryPath(categoryPath)
-    if (pathCategories.length > 0) {
-      return pathCategories
-    }
-    return queryCategories
-  }, [categoryPath, queryCategories])
-
-  const searchQuery = searchParams.get('q') ?? ''
-  const [searchDraft, setSearchDraft] = useState(() => searchQuery || storedDrafts?.searchDraft || '')
-  const activeComposerTab = (searchParams.get('tab') as 'new' | 'search') ?? 'new' // 'tab' param for UI state
-
-  const setSelectedCategories: React.Dispatch<React.SetStateAction<string[]>> = useCallback((update) => {
-    const next = typeof update === 'function' ? update(selectedCategories) : update
-    const nextPath = buildCategoryPath(next)
-    const newParams = new URLSearchParams(searchParams)
-    newParams.delete('c')
-    const search = newParams.toString()
-    const targetPath = nextPath ? `/categories/${nextPath}` : '/'
-    navigate(search ? `${targetPath}?${search}` : targetPath, { replace: true })
-  }, [navigate, searchParams, selectedCategories])
-
-  const setSearchQueryState = useCallback((query: string) => {
-    setSearchDraft(query)
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev)
-      if (query) {
-        newParams.set('q', query)
-        newParams.set('tab', 'search') // implicit tab switch
-      } else {
-        newParams.delete('q')
-      }
-      return newParams
-    }, { replace: true })
-  }, [setSearchParams])
-
-  const setActiveComposerTabState = useCallback((tab: 'new' | 'search') => {
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev)
-      newParams.set('tab', tab)
-      // clear search query if switching away from search tab? 
-      // Maybe not, the user might want to keep the search. 
-      // But if they switch to 'new', search query might be confusing.
-      // For now, let's just update the tab.
-      return newParams
-    }, { replace: true })
-  }, [setSearchParams])
-
-  useEffect(() => {
-    if (queryCategories.length === 0) {
-      return
-    }
-    const pathCategories = parseCategoryPath(categoryPath)
-    if (pathCategories.length > 0) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev)
-        next.delete('c')
-        return next
-      }, { replace: true })
-      return
-    }
-    const nextPath = buildCategoryPath(queryCategories)
-    const newParams = new URLSearchParams(searchParams)
-    newParams.delete('c')
-    const search = newParams.toString()
-    navigate(search ? `/categories/${nextPath}?${search}` : `/categories/${nextPath}`, {
-      replace: true,
-    })
-  }, [
-    categoryPath,
-    navigate,
-    queryCategories,
-    searchParams,
-    setSearchParams,
-  ])
+  const {
+    selectedCategories,
+    searchQuery,
+    searchDraft,
+    setSearchDraft,
+    setSelectedCategories,
+    setSearchQuery: setSearchQueryState,
+  } = useHomeFeedUrlState({
+    initialSearchDraft: storedDrafts?.searchDraft ?? '',
+  })
 
   const [entryDrafts, setEntryDrafts] = useState<Record<string, string>>(
     () => storedDrafts?.entryDrafts ?? {},
@@ -179,9 +91,9 @@ export const useHomeFeedState = () => {
     }))
   }
 
-  const persistDraftsNow = useCallback((overrides?: Partial<HomeFeedDrafts>) => {
+  const buildDraftPayload = useCallback((overrides?: Partial<HomeFeedDrafts>) => {
     if (typeof window === 'undefined') {
-      return
+      return null
     }
     const payload: HomeFeedDrafts = {
       threadBody,
@@ -202,24 +114,7 @@ export const useHomeFeedState = () => {
       entryDrafts: overrides?.entryDrafts ?? payload.entryDrafts,
       replyDrafts: overrides?.replyDrafts ?? payload.replyDrafts,
     }
-    const hasDrafts =
-      Boolean(nextPayload.threadBody.trim()) ||
-      Boolean(nextPayload.searchDraft?.trim()) ||
-      Boolean(nextPayload.editingThreadId) ||
-      Boolean(nextPayload.editingEntryId) ||
-      Boolean(nextPayload.editingThreadBody?.trim()) ||
-      (nextPayload.editingThreadCategories?.length ?? 0) > 0 ||
-      Boolean(nextPayload.editingCategoryInput?.trim()) ||
-      Boolean(nextPayload.isAddingEditingCategory) ||
-      Boolean(nextPayload.editingEntryBody?.trim()) ||
-      Object.values(nextPayload.entryDrafts ?? {}).some((value) => value.trim()) ||
-      Object.values(nextPayload.replyDrafts ?? {}).some((value) => value.trim())
-
-    if (!hasDrafts) {
-      window.localStorage.removeItem(STORAGE_KEY)
-      return
-    }
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPayload))
+    return nextPayload
   }, [
     entryDrafts,
     editingCategoryInput,
@@ -234,95 +129,44 @@ export const useHomeFeedState = () => {
     threadBody,
   ])
 
-  useEffect(() => {
-    if (hasRestoredFromStorage.current) {
-      return
-    }
-    hasRestoredFromStorage.current = true
+  const hasDrafts = useCallback((payload: HomeFeedDrafts) => (
+    Boolean(payload.threadBody.trim()) ||
+    Boolean(payload.searchDraft?.trim()) ||
+    Boolean(payload.editingThreadId) ||
+    Boolean(payload.editingEntryId) ||
+    Boolean(payload.editingThreadBody?.trim()) ||
+    (payload.editingThreadCategories?.length ?? 0) > 0 ||
+    Boolean(payload.editingCategoryInput?.trim()) ||
+    Boolean(payload.isAddingEditingCategory) ||
+    Boolean(payload.editingEntryBody?.trim()) ||
+    Object.values(payload.entryDrafts ?? {}).some((value) => value.trim()) ||
+    Object.values(payload.replyDrafts ?? {}).some((value) => value.trim())
+  ), [])
 
-    if (storedDrafts?.replyDrafts) {
-      replyDraft.actions.setReplyDrafts(storedDrafts.replyDrafts)
-    }
-    if (storedDrafts?.editingThreadId) {
-      setEditingThreadId(storedDrafts.editingThreadId)
-    }
-    if (storedDrafts?.editingThreadBody !== undefined) {
-      threadEditor.actions.setEditingThreadBody(storedDrafts.editingThreadBody)
-    }
-    if (storedDrafts?.editingThreadCategories) {
-      threadEditor.actions.setEditingThreadCategories(storedDrafts.editingThreadCategories)
-    }
-    if (storedDrafts?.editingCategoryInput !== undefined) {
-      threadEditor.actions.setEditingCategoryInput(storedDrafts.editingCategoryInput)
-    }
-    if (storedDrafts?.isAddingEditingCategory !== undefined) {
-      threadEditor.actions.setIsAddingEditingCategory(storedDrafts.isAddingEditingCategory)
-    }
-    if (storedDrafts?.editingEntryId) {
-      entryEditor.actions.setEditingEntryId(storedDrafts.editingEntryId)
-    }
-    if (storedDrafts?.editingEntryBody !== undefined) {
-      entryEditor.actions.setEditingEntryBody(storedDrafts.editingEntryBody)
-    }
-  }, [
-    entryEditor.actions,
-    replyDraft.actions,
-    storedDrafts,
-    threadEditor.actions,
-  ])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-  const hasDrafts =
-      Boolean(threadBody.trim()) ||
-      Boolean(searchDraft.trim()) ||
-      Boolean(editingThreadId) ||
-      Boolean(editingEntryId) ||
-      Boolean(editingThreadBody.trim()) ||
-      editingThreadCategories.length > 0 ||
-      Boolean(editingCategoryInput.trim()) ||
-      isAddingEditingCategory ||
-      Boolean(editingEntryBody.trim()) ||
-      Object.values(entryDrafts).some((value) => value.trim()) ||
-      Object.values(replyDraft.state.replyDrafts).some((value) => value.trim())
-
-    if (!hasDrafts) {
-      window.localStorage.removeItem(STORAGE_KEY)
-      return
-    }
-    const timer = setTimeout(() => {
-      const payload: HomeFeedDrafts = {
-        threadBody,
-        entryDrafts,
-        replyDrafts: replyDraft.state.replyDrafts,
-        searchDraft,
-        editingThreadId,
-        editingThreadBody,
-        editingThreadCategories,
-        editingCategoryInput,
-        isAddingEditingCategory,
-        editingEntryId,
-        editingEntryBody,
-      }
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [
-    threadBody,
-    searchDraft,
-    editingThreadId,
-    editingThreadBody,
-    editingThreadCategories,
-    editingCategoryInput,
-    isAddingEditingCategory,
-    editingEntryId,
-    editingEntryBody,
-    entryDrafts,
-    replyDraft.state.replyDrafts,
-  ])
+  const { persistDraftsNow } = useDraftPersistence<HomeFeedDrafts, Partial<HomeFeedDrafts>>({
+    storageKey,
+    legacyKeys: [legacyKey],
+    version: STORAGE_VERSION,
+    buildPayload: buildDraftPayload,
+    hasDrafts,
+    onRestore: (payload) => {
+      const drafts = payload ?? null
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setThreadBody(drafts?.threadBody ?? '')
+      setEntryDrafts(drafts?.entryDrafts ?? {})
+      setSearchDraft(drafts?.searchDraft ?? searchQuery)
+      setEditingThreadId(drafts?.editingThreadId ?? null)
+      /* eslint-enable react-hooks/set-state-in-effect */
+      replyDraft.actions.setReplyDrafts(drafts?.replyDrafts ?? {})
+      replyDraft.actions.setActiveReplyId(null)
+      threadEditor.actions.setEditingThreadBody(drafts?.editingThreadBody ?? '')
+      threadEditor.actions.setEditingThreadCategories(drafts?.editingThreadCategories ?? [])
+      threadEditor.actions.setEditingCategoryInput(drafts?.editingCategoryInput ?? '')
+      threadEditor.actions.setIsAddingEditingCategory(drafts?.isAddingEditingCategory ?? false)
+      entryEditor.actions.setEditingEntryId(drafts?.editingEntryId ?? null)
+      entryEditor.actions.setEditingEntryBody(drafts?.editingEntryBody ?? '')
+    },
+  })
 
   return {
     state: {
@@ -340,7 +184,6 @@ export const useHomeFeedState = () => {
       editingEntryBody: entryEditor.state.editingEntryBody,
       searchQuery,
       searchDraft,
-      activeComposerTab,
     },
     actions: {
       thread: {
@@ -372,7 +215,6 @@ export const useHomeFeedState = () => {
       ui: {
         setSearchQuery: setSearchQueryState,
         setSearchDraft,
-        setActiveComposerTab: setActiveComposerTabState,
         persistDraftsNow,
       },
     },

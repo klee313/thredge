@@ -23,10 +23,17 @@ export const buildEntryOrder = (entries: EntryDetail[]) => {
     }
   })
 
-  const byOrderIndex = (a: EntryDetail, b: EntryDetail) =>
-    a.orderIndex === b.orderIndex
-      ? a.createdAt.localeCompare(b.createdAt)
-      : a.orderIndex - b.orderIndex
+  const byOrderIndex = (a: EntryDetail, b: EntryDetail) => {
+    if (a.orderIndex !== b.orderIndex) {
+      return a.orderIndex - b.orderIndex
+    }
+    const leftTime = Date.parse(a.createdAt)
+    const rightTime = Date.parse(b.createdAt)
+    if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime)) {
+      return leftTime - rightTime
+    }
+    return a.createdAt.localeCompare(b.createdAt)
+  }
 
   roots.sort(byOrderIndex)
   childrenByParent.forEach((children) => children.sort(byOrderIndex))

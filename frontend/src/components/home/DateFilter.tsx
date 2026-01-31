@@ -24,14 +24,15 @@ export function DateFilter({
 }: DateFilterProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--theme-muted)]">
-      <button
-        className="rounded-full border border-[var(--theme-border)] px-2 py-1 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
-        type="button"
-        onClick={onClear}
-        disabled={!selectedDate}
-      >
-        {labels.allDates}
-      </button>
+      {selectedDate ? (
+        <button
+          className="rounded-full border border-[var(--theme-border)] px-2 py-1 text-[11px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
+          type="button"
+          onClick={onClear}
+        >
+          {labels.allDates}
+        </button>
+      ) : null}
       <div className="flex items-center gap-1">
         <button
           className="flex items-center justify-center px-2 py-1 text-xs font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"

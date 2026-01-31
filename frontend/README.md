@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# thredge frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite based client for thredge.
 
-Currently, two official plugins are available:
+## Requirements
+- Node.js 20+
+- pnpm/npm/yarn
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick start
+- Install: `npm install`
+- Dev server: `npm run dev`
+- Type check: `npm run typecheck`
+- Lint: `npm run lint`
+- Lint (fix): `npm run lint:fix`
+- Test: `npm run test`
+- Build: `npm run build`
+- Preview: `npm run preview`
+- OpenAPI types: `npm run openapi:types`
+- OpenAPI types check: `npm run openapi:check`
 
-## React Compiler
+## Tooling notes
+- Preferred package manager: `npm` (this repo ships `package-lock.json`).
+- `openapi:check` relies on `git diff` and expects a git working tree.
+- `src/lib/api/generated.ts` is kept for schema drift checks; runtime types use curated definitions in `src/lib/api.ts`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment
+- `VITE_API_BASE_URL`
+  - API base URL. Empty string means same-origin.
+- `VITE_TRUSTED_HTML`
+  - Set to `1`/`true` to allow trusted HTML rendering in highlights (default: enabled).
+  - Set to `0`/`false` to force plain-text rendering.
+- `FRONTEND_PORT`
+  - Dev server port (default: 5174).
+- `VITE_DISABLE_HMR`
+  - Set to `1` to disable HMR (default: enabled).
+- `VITE_USE_POLLING`
+  - Set to `1` to enable file watching via polling (default: disabled).
 
-## Expanding the ESLint configuration
+## Project notes
+- Theme is applied via CSS variables (`--theme-*`) and updated at runtime.
+- UI language uses i18next. Supported languages: `ko`, `en`, `tr`.
+- App state in Settings is persisted in `localStorage` (key: `thredge-settings-v1`).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Conventions
+- API calls live in `src/lib/api.ts`.
+- Query keys are centralized in `src/lib/queryKeys.ts`.
+- Shared UI tokens are in `src/lib/uiTokens.ts`.

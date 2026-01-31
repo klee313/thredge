@@ -18,12 +18,14 @@ class DataInitializer(
             val adminUser =
                     UserEntity(
                             username = "admin",
+                            name = "admin",
                             passwordHash = requireNotNull(passwordEncoder.encode("admin")),
                             role = UserRole.ADMIN
                     )
             val defaultUser =
                     UserEntity(
                             username = "user",
+                            name = "user",
                             passwordHash = requireNotNull(passwordEncoder.encode("user")),
                             role = UserRole.USER
                     )

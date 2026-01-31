@@ -32,6 +32,7 @@ class AdminController(
             AdminUserSummary(
                 id = userId,
                 username = it.username,
+                name = it.name,
                 role = it.role.name,
                 createdAt = it.createdAt,
             )

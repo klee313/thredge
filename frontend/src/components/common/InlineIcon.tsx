@@ -3,6 +3,7 @@ type InlineIconProps = {
   className?: string
 }
 
+// NOTE: `svg` must be a trusted, static asset string (do not pass user input).
 export function InlineIcon({ svg, className }: InlineIconProps) {
   return (
     <span

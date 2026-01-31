@@ -26,6 +26,7 @@ class ThreadSeeder(
             ?: userRepository.save(
                 UserEntity(
                     username = "local",
+                    name = "local",
                     passwordHash = requireNotNull(passwordEncoder.encode("local1234")),
                 ),
             )

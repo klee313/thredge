@@ -1,7 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useOutletContext } from 'react-router-dom'
-import type { AppOutletContext } from '../App'
 import {
   deleteAdminUser,
   fetchAdminUsers,
@@ -10,29 +8,33 @@ import {
 } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 import { uiTokens } from '../lib/uiTokens'
+import { ErrorNotice } from '../components/common/ErrorNotice'
+import { useGlobalErrorStore } from '../store/globalErrorStore'
 
 export function AdminPage() {
   const { t } = useTranslation()
-  const { authQuery } = useOutletContext<AppOutletContext>()
   const queryClient = useQueryClient()
-  const isAdmin = authQuery.data?.role === 'ADMIN'
+  const { setError: setGlobalError } = useGlobalErrorStore()
 
   const signupPolicyQuery = useQuery({
     queryKey: queryKeys.admin.signupPolicy,
-    queryFn: fetchSignupPolicy,
-    enabled: isAdmin,
+    queryFn: ({ signal }) => fetchSignupPolicy({ signal }),
+    meta: { suppressGlobalError: true },
   })
 
   const usersQuery = useQuery({
     queryKey: queryKeys.admin.users,
-    queryFn: fetchAdminUsers,
-    enabled: isAdmin,
+    queryFn: ({ signal }) => fetchAdminUsers({ signal }),
+    meta: { suppressGlobalError: true },
   })
 
   const signupPolicyMutation = useMutation({
     mutationFn: (enabled: boolean) => updateSignupPolicy(enabled),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.signupPolicy })
+    },
+    onError: (error: Error) => {
+      setGlobalError(error.message, { source: 'admin', devMessage: error.stack })
     },
   })
 
@@ -41,19 +43,10 @@ export function AdminPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users })
     },
+    onError: (error: Error) => {
+      setGlobalError(error.message, { source: 'admin', devMessage: error.stack })
+    },
   })
-
-  if (authQuery.isLoading) {
-    return <div className="text-sm text-[var(--theme-muted)]">{t('common.loading')}</div>
-  }
-
-  if (!authQuery.data) {
-    return <div className="text-sm text-[var(--theme-muted)]">{t('admin.loginRequired')}</div>
-  }
-
-  if (!isAdmin) {
-    return <div className="text-sm text-[var(--theme-muted)]">{t('admin.adminOnly')}</div>
-  }
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -69,7 +62,7 @@ export function AdminPage() {
         <div className="mt-2 flex items-center justify-between gap-3 text-sm">
           <div className="text-[var(--theme-ink)]">
             {signupPolicyQuery.isLoading && t('common.loading')}
-            {signupPolicyQuery.isError && t('admin.error')}
+            {signupPolicyQuery.isError && <ErrorNotice message={t('admin.error')} />}
             {signupPolicyQuery.isSuccess &&
               (signupPolicyQuery.data.enabled
                 ? t('admin.signupAllowed')
@@ -103,11 +96,7 @@ export function AdminPage() {
             {t('common.loading')}
           </div>
         )}
-        {usersQuery.isError && (
-          <div className="mt-2 text-sm text-[var(--theme-muted)]">
-            {t('admin.error')}
-          </div>
-        )}
+        {usersQuery.isError && <ErrorNotice message={t('admin.error')} className="mt-2" />}
         {usersQuery.isSuccess && usersQuery.data.length === 0 && (
           <div className="mt-2 text-sm text-[var(--theme-muted)]">
             {t('admin.emptyUsers')}
@@ -121,7 +110,8 @@ export function AdminPage() {
                 className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm"
               >
                 <div className="min-w-[160px]">
-                  <div className="font-semibold text-[var(--theme-ink)]">{user.username}</div>
+                  <div className="font-semibold text-[var(--theme-ink)]">{user.name}</div>
+                  <div className="text-xs text-[var(--theme-muted)]">@{user.username}</div>
                   <div className="text-xs text-[var(--theme-muted)]">
                     {new Date(user.createdAt).toLocaleString()}
                   </div>

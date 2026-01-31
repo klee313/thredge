@@ -6,6 +6,7 @@ import java.util.UUID
 data class AdminUserSummary(
     val id: UUID,
     val username: String,
+    val name: String,
     val role: String,
     val createdAt: Instant,
 )

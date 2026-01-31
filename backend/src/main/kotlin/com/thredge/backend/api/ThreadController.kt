@@ -77,6 +77,9 @@ class ThreadController(
         fun searchThreads(
                 @RequestParam @NotBlank(message = ValidationMessages.QUERY_REQUIRED) query: String,
                 @RequestParam(required = false) categoryIds: List<String>?,
+                @RequestParam(required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                date: LocalDate?,
                 @RequestParam(defaultValue = "${PagingDefaults.DEFAULT_PAGE}") @Min(0L) page: Int,
                 @RequestParam(defaultValue = "${PagingDefaults.THREAD_DEFAULT_SIZE}")
                 @Min(1L)
@@ -89,6 +92,7 @@ class ThreadController(
                         ownerUsername,
                         query,
                         categoryIds,
+                        date,
                         PageRequest.of(page, size)
                 )
         }

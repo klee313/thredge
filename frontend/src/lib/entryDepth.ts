@@ -1,11 +1,12 @@
 export const buildEntryDepthMap = (
   entries: { id: string; parentEntryId?: string | null }[],
+  maxDepth: number = 3,
 ) => {
   const entryById = new Map(entries.map((entry) => [entry.id, entry]))
   const depthCache = new Map<string, number>()
   const getDepth = (entryId: string) => {
     const cached = depthCache.get(entryId)
-    if (cached) {
+    if (cached !== undefined) {
       return cached
     }
     let depth = 1
@@ -17,7 +18,7 @@ export const buildEntryDepthMap = (
       }
       depth += 1
       currentId = parent.parentEntryId ?? null
-      if (depth >= 3) {
+      if (depth >= maxDepth) {
         break
       }
     }

@@ -1,10 +1,11 @@
-import { useEffect, useRef, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, type FormEvent } from 'react'
 import { useTextareaAutosize } from '../../hooks/useTextareaAutosize'
 
 type AutosizeTextareaProps = {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  ariaLabel?: string
   className: string
   inputRef?: (element: HTMLTextAreaElement | null) => void
   onInput?: (event: FormEvent<HTMLTextAreaElement>) => void
@@ -14,6 +15,7 @@ export function AutosizeTextarea({
   value,
   onChange,
   placeholder,
+  ariaLabel,
   className,
   inputRef,
   onInput,
@@ -21,7 +23,7 @@ export function AutosizeTextarea({
   const { handleTextareaInput, resizeTextarea } = useTextareaAutosize()
   const internalRef = useRef<HTMLTextAreaElement | null>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     resizeTextarea(internalRef.current)
   }, [value, resizeTextarea])
 
@@ -29,6 +31,7 @@ export function AutosizeTextarea({
     <textarea
       className={className}
       placeholder={placeholder}
+      aria-label={ariaLabel}
       value={value}
       onChange={(event) => onChange(event.target.value)}
       onInput={(e) => {
@@ -37,7 +40,6 @@ export function AutosizeTextarea({
       }}
       data-autoresize="true"
       ref={(element) => {
-        resizeTextarea(element)
         internalRef.current = element
         inputRef?.(element)
       }}

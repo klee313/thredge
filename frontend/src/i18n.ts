@@ -5,6 +5,7 @@ import { initReactI18next } from 'react-i18next'
 import en from './locales/en.json'
 import ko from './locales/ko.json'
 import tr from './locales/tr.json'
+import { supportedLanguages, type SupportedLanguage } from './lib/languages'
 
 const resources = {
   en: { translation: en },
@@ -12,13 +13,45 @@ const resources = {
   tr: { translation: tr },
 } as const
 
+const SETTINGS_STORAGE_KEY = 'thredge-settings-v1'
+
+type PersistedSettings = {
+  state?: {
+    uiLanguage?: SupportedLanguage
+  }
+  uiLanguage?: SupportedLanguage
+}
+
+const readPreferredLanguage = (): SupportedLanguage | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as PersistedSettings
+    const candidate = parsed?.state?.uiLanguage ?? parsed?.uiLanguage
+    if (candidate && supportedLanguages.includes(candidate)) {
+      return candidate
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+const preferredLanguage = readPreferredLanguage()
+
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
-    supportedLngs: ['en', 'ko', 'tr'],
+    supportedLngs: supportedLanguages,
     fallbackLng: 'en',
+    lng: preferredLanguage ?? undefined,
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator'],
@@ -27,4 +60,3 @@ void i18n
   })
 
 export default i18n
-

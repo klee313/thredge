@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useOutletContext } from 'react-router-dom'
@@ -8,9 +8,7 @@ import { z } from 'zod'
 import { supportedLanguages } from '../lib/languages'
 import { useSettingsStore } from '../store/settingsStore'
 import i18n from '../i18n'
-import { fetchCategories, changePassword } from '../lib/api'
-import { queryKeys } from '../lib/queryKeys'
-import { useCategoryMutations } from '../hooks/useCategoryMutations'
+import { changePassword, updateDisplayName } from '../lib/api'
 import { uiTokens } from '../lib/uiTokens'
 import {
   CUSTOM_THEME_ID,
@@ -21,42 +19,57 @@ import {
   uiThemePresets,
 } from '../lib/uiTheme'
 import type { AppOutletContext } from '../App'
+import { useGlobalErrorStore } from '../store/globalErrorStore'
+import { SettingsPasswordSection } from '../components/settings/SettingsPasswordSection'
+import { queryKeys } from '../lib/queryKeys'
 
 const schema = z.object({
   uiLanguage: z.enum(supportedLanguages),
   themePreset: z.string(),
   themeCustomColor: z.string(),
+  pinchZoomEnabled: z.boolean(),
+  profileImageUrl: z.string().nullable(),
 })
 
-const passwordChangeSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(4, 'Password must be at least 4 characters'),
-    confirmNewPassword: z.string().min(4, 'Password must be at least 4 characters'),
-  })
-  .refine((data) => data.newPassword === data.confirmNewPassword, {
-    message: "Passwords don't match",
-    path: ['confirmNewPassword'],
-  })
+const buildPasswordChangeSchema = (t: (key: string) => string) =>
+  z
+    .object({
+      currentPassword: z.string().min(1, t('settings.passwordCurrentRequired')),
+      newPassword: z.string().min(4, t('settings.passwordMinLength')),
+      confirmNewPassword: z.string().min(4, t('settings.passwordMinLength')),
+    })
+    .refine((data) => data.newPassword === data.confirmNewPassword, {
+      message: t('settings.passwordMismatch'),
+      path: ['confirmNewPassword'],
+    })
 
-type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>
+export type PasswordChangeFormValues = z.infer<ReturnType<typeof buildPasswordChangeSchema>>
 type FormValues = z.infer<typeof schema>
 
 export function SettingsPage() {
   const { t } = useTranslation()
   const settings = useSettingsStore()
   const { authQuery } = useOutletContext<AppOutletContext>()
-  const [newCategory, setNewCategory] = useState('')
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
-  const [editingCategoryName, setEditingCategoryName] = useState('')
-  const [savedAt, setSavedAt] = useState<number | null>(null)
-  const savedAtRef = useRef<number | null>(null)
+  const queryClient = useQueryClient()
+  const { setError: setGlobalError } = useGlobalErrorStore()
+  const [uiSavedAt, setUiSavedAt] = useState<number | null>(null)
+  const [profileSavedAt, setProfileSavedAt] = useState<number | null>(null)
+  const [passwordSavedAt, setPasswordSavedAt] = useState<number | null>(null)
+  const [displayNameSavedAt, setDisplayNameSavedAt] = useState<number | null>(null)
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState('')
+  const [isProfileEditing, setIsProfileEditing] = useState(false)
+  const uiSavedAtRef = useRef<number | null>(null)
+  const profileSavedAtRef = useRef<number | null>(null)
+  const displayNameInputRef = useRef<HTMLInputElement | null>(null)
   const { control, register, handleSubmit, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       uiLanguage: settings.uiLanguage,
       themePreset: settings.themePreset,
       themeCustomColor: settings.themeCustomColor,
+      pinchZoomEnabled: settings.pinchZoomEnabled,
+      profileImageUrl: settings.profileImageUrl,
     },
   })
 
@@ -65,12 +78,24 @@ export function SettingsPage() {
       uiLanguage: settings.uiLanguage,
       themePreset: settings.themePreset,
       themeCustomColor: settings.themeCustomColor,
+      pinchZoomEnabled: settings.pinchZoomEnabled,
+      profileImageUrl: settings.profileImageUrl,
     })
   }, [reset, settings])
+
+  useEffect(() => {
+    if (!authQuery.data) {
+      return
+    }
+    const fallbackName = authQuery.data.name || authQuery.data.username
+    setDisplayName(fallbackName)
+  }, [authQuery.data?.name, authQuery.data?.username, authQuery.data])
 
   const selectedUiLanguage = useWatch({ control, name: 'uiLanguage' })
   const selectedThemePreset = useWatch({ control, name: 'themePreset' })
   const selectedThemeCustomColor = useWatch({ control, name: 'themeCustomColor' })
+  const selectedPinchZoomEnabled = useWatch({ control, name: 'pinchZoomEnabled' })
+  const selectedProfileImageUrl = useWatch({ control, name: 'profileImageUrl' })
   useEffect(() => {
     void i18n.changeLanguage(selectedUiLanguage)
   }, [selectedUiLanguage])
@@ -80,22 +105,78 @@ export function SettingsPage() {
   }, [selectedThemePreset, selectedThemeCustomColor])
 
   useEffect(() => {
-    if (!savedAt) {
+    if (!uiSavedAt) {
       return
     }
-    const timeoutId = window.setTimeout(() => setSavedAt(null), 2000)
+    const timeoutId = window.setTimeout(() => setUiSavedAt(null), 2000)
     return () => window.clearTimeout(timeoutId)
-  }, [savedAt])
+  }, [uiSavedAt])
 
   useEffect(() => {
-    savedAtRef.current = savedAt
-  }, [savedAt])
-
-  useEffect(() => {
-    if (savedAtRef.current) {
-      setSavedAt(null)
+    if (!profileSavedAt) {
+      return
     }
-  }, [selectedUiLanguage, selectedThemePreset, selectedThemeCustomColor])
+    const timeoutId = window.setTimeout(() => setProfileSavedAt(null), 2000)
+    return () => window.clearTimeout(timeoutId)
+  }, [profileSavedAt])
+
+  useEffect(() => {
+    if (!passwordSavedAt) {
+      return
+    }
+    const timeoutId = window.setTimeout(() => setPasswordSavedAt(null), 2000)
+    return () => window.clearTimeout(timeoutId)
+  }, [passwordSavedAt])
+
+  useEffect(() => {
+    if (!displayNameSavedAt) {
+      return
+    }
+    const timeoutId = window.setTimeout(() => setDisplayNameSavedAt(null), 2000)
+    return () => window.clearTimeout(timeoutId)
+  }, [displayNameSavedAt])
+
+  useEffect(() => {
+    uiSavedAtRef.current = uiSavedAt
+  }, [uiSavedAt])
+
+  useEffect(() => {
+    profileSavedAtRef.current = profileSavedAt
+  }, [profileSavedAt])
+
+  useEffect(() => {
+    if (displayNameSavedAt) {
+      setDisplayNameSavedAt(null)
+    }
+    if (displayNameError) {
+      setDisplayNameError(null)
+    }
+  }, [displayName])
+
+  useEffect(() => {
+    if (!isProfileEditing) {
+      return
+    }
+    const timeoutId = window.setTimeout(() => {
+      displayNameInputRef.current?.focus()
+      displayNameInputRef.current?.select()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [isProfileEditing])
+
+  useEffect(() => {
+    if (uiSavedAtRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUiSavedAt(null)
+    }
+  }, [selectedUiLanguage, selectedThemePreset, selectedThemeCustomColor, selectedPinchZoomEnabled])
+
+  useEffect(() => {
+    if (profileSavedAtRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProfileSavedAt(null)
+    }
+  }, [selectedProfileImageUrl])
 
   const customColorValue =
     normalizeThemeHex(selectedThemeCustomColor) ?? settings.themeCustomColor
@@ -103,40 +184,86 @@ export function SettingsPage() {
     () => buildThemeFromPrimary(customColorValue),
     [customColorValue],
   )
+  const profileInitial = useMemo(() => {
+    if (displayName.trim()) {
+      return displayName.trim().charAt(0).toUpperCase()
+    }
+    if (authQuery.data?.username) {
+      return authQuery.data.username.charAt(0).toUpperCase()
+    }
+    return '?'
+  }, [authQuery.data?.username, displayName])
 
-  const onSubmit = (values: FormValues) => {
+  const onUiSubmit = (values: FormValues) => {
     const normalizedCustomColor =
       normalizeThemeHex(values.themeCustomColor) ?? settings.themeCustomColor
-    settings.setAll({
+    settings.setPartial({
       uiLanguage: values.uiLanguage,
-      nativeLanguage: settings.nativeLanguage,
-      targetLanguage: settings.targetLanguage,
-      correctionEnabled: settings.correctionEnabled,
-      coachTone: settings.coachTone,
       themePreset: values.themePreset,
       themeCustomColor: normalizedCustomColor,
+      pinchZoomEnabled: values.pinchZoomEnabled,
     })
-    setSavedAt(Date.now())
+    setUiSavedAt((prev) => (prev ?? 0) + 1)
   }
 
-  const categoriesQuery = useQuery({
-    queryKey: queryKeys.categories,
-    queryFn: fetchCategories,
-    enabled: Boolean(authQuery.data),
+  const onProfileSubmit = (values: FormValues) => {
+    settings.setPartial({
+      profileImageUrl: values.profileImageUrl,
+    })
+    setProfileSavedAt((prev) => (prev ?? 0) + 1)
+  }
+
+  const profileImageInputRef = useRef<HTMLInputElement | null>(null)
+  const handleProfileImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setGlobalError(t('settings.profileImageInvalidType'), { source: 'ui' })
+      if (profileImageInputRef.current) {
+        profileImageInputRef.current.value = ''
+      }
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : null
+      if (!result) {
+        setGlobalError(t('settings.profileImageLoadError'), { source: 'ui' })
+        return
+      }
+      setValue('profileImageUrl', result, { shouldDirty: true })
+    }
+    reader.onerror = () => {
+      setGlobalError(t('settings.profileImageLoadError'), { source: 'ui' })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleProfileImageClear = () => {
+    setValue('profileImageUrl', null, { shouldDirty: true })
+    if (profileImageInputRef.current) {
+      profileImageInputRef.current.value = ''
+    }
+  }
+
+  const displayNameMutation = useMutation({
+    mutationFn: (value: string) => updateDisplayName(value),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(queryKeys.auth.me, data)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me })
+      setDisplayNameSavedAt((prev) => (prev ?? 0) + 1)
+      setDisplayNameError(null)
+      setIsProfileEditing(false)
+    },
+    onError: (error: Error) => {
+      setDisplayNameError(error.message)
+      setGlobalError(error.message, { source: 'auth', devMessage: error.stack })
+    },
   })
 
-  const { createCategoryMutation, updateCategoryMutation, deleteCategoryMutation } =
-    useCategoryMutations({
-      invalidateThreadsFeed: true,
-      onCreateSuccess: () => {
-        setNewCategory('')
-      },
-      onUpdateSuccess: () => {
-        setEditingCategoryId(null)
-        setEditingCategoryName('')
-      },
-    })
-
+  const passwordChangeSchema = useMemo(() => buildPasswordChangeSchema(t), [t])
   const {
     register: registerPassword,
     handleSubmit: handleSubmitPassword,
@@ -152,10 +279,11 @@ export function SettingsPage() {
       changePassword(values.currentPassword, values.newPassword),
     onSuccess: () => {
       resetPassword()
-      alert(t('settings.passwordChanged'))
+      setPasswordSavedAt((prev) => (prev ?? 0) + 1)
     },
     onError: (error: Error) => {
       setPasswordError('root', { message: error.message })
+      setGlobalError(error.message, { source: 'auth', devMessage: error.stack })
     },
   })
 
@@ -163,101 +291,264 @@ export function SettingsPage() {
     changePasswordMutation.mutate(values)
   }
 
+  const handleDisplayNameSubmit = () => {
+    const trimmedName = displayName.trim()
+    if (!trimmedName) {
+      setDisplayNameError(t('settings.displayNameRequired'))
+      displayNameInputRef.current?.focus()
+      return
+    }
+    if (trimmedName.length > 40) {
+      setDisplayNameError(t('settings.displayNameTooLong'))
+      displayNameInputRef.current?.focus()
+      return
+    }
+    if (trimmedName !== displayName) {
+      setDisplayName(trimmedName)
+    }
+    displayNameMutation.mutate(trimmedName)
+  }
+
   return (
     <div className="space-y-2 sm:space-y-4">
       <h1 className="text-xl font-semibold">{t('settings.title')}</h1>
+      <div className="text-xs text-[var(--theme-muted)]">{t('settings.previewNote')}</div>
+
+      {authQuery.data && (
+        <form
+          className={`${uiTokens.card.surface}`}
+          onSubmit={(event) => {
+            void handleSubmit(onProfileSubmit)(event)
+          }}
+        >
+          <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-base)] p-3 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-[240px] items-center gap-3">
+                <button
+                  type="button"
+                  className="relative"
+                  onClick={() => profileImageInputRef.current?.click()}
+                >
+                  {selectedProfileImageUrl ? (
+                    <img
+                      src={selectedProfileImageUrl}
+                      alt={t('settings.profileImageAlt')}
+                      className="h-16 w-16 rounded-full border-2 border-[var(--theme-border)] object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-[var(--theme-border)] text-sm font-semibold text-[var(--theme-muted)]">
+                      {profileInitial}
+                    </div>
+                  )}
+                </button>
+                <div className="space-y-1 text-left">
+                  {isProfileEditing ? (
+                    <input
+                      ref={displayNameInputRef}
+                      className="w-full border-b border-transparent bg-transparent pb-0.5 text-sm font-semibold text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] focus:border-[var(--theme-primary)] focus:outline-none"
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      onBlur={() => {
+                        if (!displayName.trim()) {
+                          handleDisplayNameSubmit()
+                          return
+                        }
+                        handleDisplayNameSubmit()
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          handleDisplayNameSubmit()
+                        }
+                        if (event.key === 'Escape') {
+                          const fallbackName = authQuery.data.name || authQuery.data.username
+                          setDisplayName(fallbackName)
+                          setDisplayNameError(null)
+                          setIsProfileEditing(false)
+                        }
+                      }}
+                      maxLength={40}
+                      placeholder={t('settings.displayNamePlaceholder')}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-sm font-semibold"
+                      onClick={() => setIsProfileEditing(true)}
+                    >
+                      {displayName || authQuery.data.username}
+                    </button>
+                  )}
+                  <div className="text-xs text-[var(--theme-muted)]">
+                    @{authQuery.data.username}
+                  </div>
+                </div>
+              </div>
+              <input
+                ref={profileImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleProfileImageChange}
+                aria-label={t('settings.profileImageUpload')}
+                className="sr-only"
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={`${uiTokens.button.secondarySm} disabled:cursor-not-allowed disabled:opacity-50`}
+                onClick={handleProfileImageClear}
+                disabled={!selectedProfileImageUrl}
+              >
+                {t('settings.profileImageRemove')}
+              </button>
+              <button type="submit" className={uiTokens.button.primarySm}>
+                {t('settings.save')}
+              </button>
+              <div className="min-h-[1rem]" role="status" aria-live="polite">
+                {profileSavedAt && (
+                  <span className="text-xs font-semibold text-emerald-600">
+                    {t('settings.saved')}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
 
       <form
-        className={`space-y-3 ${uiTokens.card.surface} sm:space-y-4`}
-        onSubmit={handleSubmit(onSubmit)}
+        className={`space-y-4 ${uiTokens.card.surface} sm:space-y-5`}
+        onSubmit={(event) => {
+          void handleSubmit(onUiSubmit)(event)
+        }}
       >
-        <div className="space-y-1">
-          <label className="text-sm text-[var(--theme-muted)]">
-            {t('settings.uiLanguage')}
-          </label>
-          <select
-            className={`${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
-            {...register('uiLanguage')}
-          >
-            <option value="ko">ko</option>
-            <option value="en">en</option>
-            <option value="tr">tr</option>
-          </select>
+        <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-base)] p-3 sm:p-4">
+          <div className="space-y-1">
+            <label className="text-sm text-[var(--theme-muted)]">
+              {t('settings.uiLanguage')}
+            </label>
+            <select
+              className={`${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
+              {...register('uiLanguage')}
+            >
+              <option value="ko">{t('settings.languageKo')}</option>
+              <option value="en">{t('settings.languageEn')}</option>
+              <option value="tr">{t('settings.languageTr')}</option>
+            </select>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-sm font-semibold">{t('settings.themeTitle')}</div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {uiThemePresets.map((preset) => {
-              const theme = buildThemeFromPrimary(preset.primary)
-              const isActive = selectedThemePreset === preset.id
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={`rounded-md border bg-[var(--theme-surface)] p-1 text-left transition ${
-                    isActive ? 'border-[var(--theme-primary)]' : 'border-[var(--theme-border)]'
-                  }`}
-                  onClick={() => setValue('themePreset', preset.id, { shouldDirty: true })}
-                  aria-pressed={isActive}
-                >
-                  <div className="flex h-8 w-full overflow-hidden rounded-sm">
-                    <span
-                      className="w-2/3"
-                      style={{ backgroundColor: theme.primary }}
-                    />
-                    <span
-                      className="w-1/3"
-                      style={{ backgroundColor: theme.soft }}
-                    />
-                  </div>
-                  <div className="mt-1 text-[10px] text-[var(--theme-muted)]">
-                    {preset.name}
-                  </div>
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              className={`rounded-md border bg-[var(--theme-surface)] p-1 text-left transition ${
-                selectedThemePreset === CUSTOM_THEME_ID
-                  ? 'border-[var(--theme-primary)]'
-                  : 'border-[var(--theme-border)]'
-              }`}
-              onClick={() => setValue('themePreset', CUSTOM_THEME_ID, { shouldDirty: true })}
-              aria-pressed={selectedThemePreset === CUSTOM_THEME_ID}
-            >
-              <div className="flex h-8 w-full overflow-hidden rounded-sm">
-                <span className="w-2/3" style={{ backgroundColor: customTheme.primary }} />
-                <span className="w-1/3" style={{ backgroundColor: customTheme.soft }} />
-              </div>
-              <div className="mt-1 text-[10px] text-[var(--theme-muted)]">
-                {t('settings.themeCustom')}
-              </div>
-            </button>
+        <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-base)] p-3 sm:p-4">
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">{t('settings.themeTitle')}</div>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {uiThemePresets.map((preset) => {
+                const theme = buildThemeFromPrimary(preset.primary)
+                const isActive = selectedThemePreset === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`rounded-md border bg-[var(--theme-surface)] p-1 text-left transition ${
+                      isActive ? 'border-[var(--theme-primary)]' : 'border-[var(--theme-border)]'
+                    }`}
+                    onClick={() => setValue('themePreset', preset.id, { shouldDirty: true })}
+                    aria-pressed={isActive}
+                  >
+                    <div className="flex h-8 w-full overflow-hidden rounded-sm">
+                      <span
+                        className="w-2/3"
+                        style={{ backgroundColor: theme.primary }}
+                      />
+                      <span
+                        className="w-1/3"
+                        style={{ backgroundColor: theme.soft }}
+                      />
+                    </div>
+                    <div className="mt-1 text-[10px] text-[var(--theme-muted)]">
+                      {preset.name}
+                    </div>
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                className={`rounded-md border bg-[var(--theme-surface)] p-1 text-left transition ${
+                  selectedThemePreset === CUSTOM_THEME_ID
+                    ? 'border-[var(--theme-primary)]'
+                    : 'border-[var(--theme-border)]'
+                }`}
+                onClick={() => setValue('themePreset', CUSTOM_THEME_ID, { shouldDirty: true })}
+                aria-pressed={selectedThemePreset === CUSTOM_THEME_ID}
+              >
+                <div className="flex h-8 w-full overflow-hidden rounded-sm">
+                  <span className="w-2/3" style={{ backgroundColor: customTheme.primary }} />
+                  <span className="w-1/3" style={{ backgroundColor: customTheme.soft }} />
+                </div>
+                <div className="mt-1 text-[10px] text-[var(--theme-muted)]">
+                  {t('settings.themeCustom')}
+                </div>
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs font-semibold text-[var(--theme-muted)]">
+                {t('settings.themeCustomColor')}
+              </label>
+              <input
+                type="color"
+                value={customColorValue}
+                onChange={(event) => {
+                  setValue('themePreset', CUSTOM_THEME_ID, { shouldDirty: true })
+                  setValue('themeCustomColor', event.target.value, { shouldDirty: true })
+                }}
+                aria-label={t('settings.themeCustomColor')}
+              />
+              <input
+                className={`${uiTokens.input.base} px-2 py-1 text-xs`}
+                value={selectedThemeCustomColor}
+                placeholder={t('settings.themeCustomPlaceholder')}
+                onChange={(event) => {
+                  setValue('themePreset', CUSTOM_THEME_ID, { shouldDirty: true })
+                  setValue('themeCustomColor', event.target.value, { shouldDirty: true })
+                }}
+              />
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs font-semibold text-[var(--theme-muted)]">
-              {t('settings.themeCustomColor')}
-            </label>
-            <input
-              type="color"
-              value={customColorValue}
-              onChange={(event) => {
-                setValue('themePreset', CUSTOM_THEME_ID, { shouldDirty: true })
-                setValue('themeCustomColor', event.target.value, { shouldDirty: true })
-              }}
-              aria-label={t('settings.themeCustomColor')}
-            />
-            <input
-              className={`${uiTokens.input.base} px-2 py-1 text-xs`}
-              value={selectedThemeCustomColor}
-              placeholder={t('settings.themeCustomPlaceholder')}
-              onChange={(event) => {
-                setValue('themePreset', CUSTOM_THEME_ID, { shouldDirty: true })
-                setValue('themeCustomColor', event.target.value, { shouldDirty: true })
-              }}
-            />
+        </div>
+
+        <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-base)] p-3 sm:p-4">
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">{t('settings.pinchZoomTitle')}</div>
+            <div className="text-xs text-[var(--theme-muted)]">
+              {t('settings.pinchZoomDescription')}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold text-[var(--theme-muted)]">
+                {selectedPinchZoomEnabled
+                  ? t('settings.pinchZoomEnabled')
+                  : t('settings.pinchZoomDisabled')}
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={selectedPinchZoomEnabled}
+                onClick={() =>
+                  setValue('pinchZoomEnabled', !selectedPinchZoomEnabled, { shouldDirty: true })
+                }
+                className={`relative h-6 w-11 rounded-full border transition ${
+                  selectedPinchZoomEnabled
+                    ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]'
+                    : 'border-[var(--theme-border)] bg-[var(--theme-surface)]'
+                }`}
+              >
+                <span
+                  className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-[var(--theme-on-primary)] transition ${
+                    selectedPinchZoomEnabled ? 'left-6' : 'left-1'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -273,7 +564,7 @@ export function SettingsPage() {
             role="status"
             aria-live="polite"
           >
-            {savedAt && (
+            {uiSavedAt && (
               <span className="text-xs font-semibold text-emerald-600">
                 {t('settings.saved')}
               </span>
@@ -284,181 +575,26 @@ export function SettingsPage() {
 
       {authQuery.data && (
         <>
-          <div className={uiTokens.card.surface}>
-            <div className="text-sm font-semibold">{t('settings.changePassword')}</div>
-            <form
-              className="mt-2 space-y-3 sm:mt-3"
-              onSubmit={handleSubmitPassword(onPasswordSubmit)}
-            >
-              <div className="space-y-1">
-                <input
-                  type="password"
-                  placeholder={t('settings.currentPassword')}
-                  className={`${uiTokens.input.base} ${uiTokens.input.paddingMd} w-full`}
-                  {...registerPassword('currentPassword')}
-                />
-                {passwordErrors.currentPassword && (
-                  <div className="text-xs text-red-600">
-                    {passwordErrors.currentPassword.message}
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1">
-                <input
-                  type="password"
-                  placeholder={t('settings.newPassword')}
-                  className={`${uiTokens.input.base} ${uiTokens.input.paddingMd} w-full`}
-                  {...registerPassword('newPassword')}
-                />
-                {passwordErrors.newPassword && (
-                  <div className="text-xs text-red-600">
-                    {passwordErrors.newPassword.message}
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1">
-                <input
-                  type="password"
-                  placeholder={t('settings.confirmNewPassword')}
-                  className={`${uiTokens.input.base} ${uiTokens.input.paddingMd} w-full`}
-                  {...registerPassword('confirmNewPassword')}
-                />
-                {passwordErrors.confirmNewPassword && (
-                  <div className="text-xs text-red-600">
-                    {passwordErrors.confirmNewPassword.message}
-                  </div>
-                )}
-              </div>
+          <SettingsPasswordSection
+            onSubmit={(event) => {
+              void handleSubmitPassword(onPasswordSubmit)(event)
+            }}
+            registerPassword={registerPassword}
+            errors={passwordErrors}
+            isPending={changePasswordMutation.isPending}
+            savedAt={passwordSavedAt}
+            labels={{
+              title: t('settings.changePassword'),
+              currentPassword: t('settings.currentPassword'),
+              newPassword: t('settings.newPassword'),
+              confirmNewPassword: t('settings.confirmNewPassword'),
+              changeButton: t('settings.changePasswordButton'),
+              saving: t('settings.saving'),
+              saved: t('settings.passwordChanged'),
+              error: t('settings.error'),
+            }}
+          />
 
-              {passwordErrors.root && (
-                <div className="text-sm text-red-600">{passwordErrors.root.message}</div>
-              )}
-
-              <button
-                type="submit"
-                className={uiTokens.button.primaryMd}
-                disabled={changePasswordMutation.isPending}
-              >
-                {changePasswordMutation.isPending
-                  ? t('settings.saving')
-                  : t('settings.changePasswordButton')}
-              </button>
-            </form>
-          </div>
-
-          <div className={uiTokens.card.surface}>
-            <div className="text-sm font-semibold">{t('settings.categories')}</div>
-            <form
-              className="mt-2 flex gap-2 sm:mt-3"
-              onSubmit={(event) => {
-                event.preventDefault()
-                if (!newCategory.trim()) {
-                  return
-                }
-                createCategoryMutation.mutate({ name: newCategory })
-              }}
-            >
-              <input
-                className={`flex-1 ${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
-                placeholder={t('settings.categoryPlaceholder')}
-                value={newCategory}
-                onChange={(event) => setNewCategory(event.target.value)}
-              />
-              <button
-                className={uiTokens.button.primaryMd}
-                type="submit"
-                disabled={createCategoryMutation.isPending}
-              >
-                {createCategoryMutation.isPending ? t('settings.saving') : t('settings.add')}
-              </button>
-            </form>
-            <div className="mt-2 space-y-2 sm:mt-3">
-              {categoriesQuery.isLoading && (
-                <div className="text-sm text-[var(--theme-muted)]">
-                  {t('settings.loading')}
-                </div>
-              )}
-              {categoriesQuery.isError && (
-                <div className="text-sm text-red-600">{t('settings.error')}</div>
-              )}
-              {categoriesQuery.data?.map((category) => (
-                <div
-                  key={category.id}
-                  className="flex items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-1.5 py-1 sm:px-3 sm:py-2"
-                >
-                  {editingCategoryId === category.id ? (
-                    <form
-                      className="flex w-full items-center gap-2"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        if (!editingCategoryName.trim()) {
-                          return
-                        }
-                        updateCategoryMutation.mutate({
-                          id: editingCategoryId ?? '',
-                          name: editingCategoryName,
-                        })
-                      }}
-                    >
-                      <input
-                        className={`flex-1 ${uiTokens.input.base} px-3 py-1`}
-                        value={editingCategoryName}
-                        onChange={(event) => setEditingCategoryName(event.target.value)}
-                      />
-                      <button
-                        className={uiTokens.button.primarySm}
-                        type="submit"
-                        disabled={updateCategoryMutation.isPending}
-                      >
-                        {t('settings.save')}
-                      </button>
-                      <button
-                        className={uiTokens.button.secondarySm}
-                        type="button"
-                        onClick={() => {
-                          setEditingCategoryId(null)
-                          setEditingCategoryName('')
-                        }}
-                      >
-                        {t('settings.cancel')}
-                      </button>
-                    </form>
-                  ) : (
-                    <>
-                      <div className="text-sm text-[var(--theme-ink)]">
-                        {category.name}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="text-xs text-[var(--theme-muted)] hover:opacity-90 hover:underline"
-                          type="button"
-                          onClick={() => {
-                            setEditingCategoryId(category.id)
-                            setEditingCategoryName(category.name)
-                          }}
-                        >
-                          {t('settings.edit')}
-                        </button>
-                        <button
-                          className="text-xs text-[var(--theme-muted)] hover:opacity-90 hover:underline"
-                          type="button"
-                          onClick={() => deleteCategoryMutation.mutate({ id: category.id })}
-                          disabled={deleteCategoryMutation.isPending}
-                        >
-                          {t('settings.delete')}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-              {categoriesQuery.data?.length === 0 && (
-                <div className="text-sm text-[var(--theme-muted)]">
-                  {t('settings.noCategories')}
-                </div>
-              )}
-            </div>
-          </div>
         </>
       )}
     </div>

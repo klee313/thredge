@@ -28,6 +28,9 @@ class UserEntity(
     @Column(nullable = false, length = 80)
     var username: String = "",
 
+    @Column(nullable = false, length = 40)
+    var name: String = "",
+
     @Column(name = "password_hash", nullable = false, length = 200)
     var passwordHash: String = "",
 

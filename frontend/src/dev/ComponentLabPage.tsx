@@ -96,11 +96,13 @@ export function ComponentLabPage() {
           onCategoryCancel={() => {
             setCategoryInput('')
           }}
-          onCategorySubmit={() => {
-            if (categoryInput.trim()) {
-              setSelectedCategories((prev) => [...prev, categoryInput.trim()])
-              setCategoryInput('')
+          onCategorySubmit={(value) => {
+            const name = value.trim()
+            if (!name) {
+              return
             }
+            setSelectedCategories((prev) => [...prev, name])
+            setCategoryInput('')
           }}
           labels={{
             save: 'Save',

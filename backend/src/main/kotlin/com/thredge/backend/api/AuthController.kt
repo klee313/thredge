@@ -1,6 +1,7 @@
 package com.thredge.backend.api
 
 import com.thredge.backend.api.dto.AuthResponse
+import com.thredge.backend.api.dto.DisplayNameRequest
 import com.thredge.backend.api.dto.LoginRequest
 import com.thredge.backend.api.dto.PasswordChangeRequest
 import com.thredge.backend.api.dto.SignupRequest
@@ -11,6 +12,8 @@ import com.thredge.backend.support.AuthSupport
 import com.thredge.backend.support.BadRequestException
 import com.thredge.backend.support.ConflictException
 import com.thredge.backend.support.NotFoundException
+import com.thredge.backend.support.UserDisplayNameSupport
+import com.thredge.backend.support.UsernameSupport
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
@@ -22,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -42,7 +46,9 @@ class AuthController(
             httpRequest: HttpServletRequest,
             httpResponse: HttpServletResponse,
     ): AuthResponse {
-        val authentication = authenticate(request.username, request.password, httpRequest, httpResponse)
+        val normalizedUsername = UsernameSupport.requireValid(request.username)
+        val authentication =
+                authenticate(normalizedUsername, request.password, httpRequest, httpResponse)
         return buildAuthResponse(authentication.name)
     }
 
@@ -55,7 +61,8 @@ class AuthController(
         if (!appSettingService.isSignupEnabled()) {
             throw BadRequestException("Signup is disabled.")
         }
-        if (userRepository.existsByUsername(request.username)) {
+        val normalizedUsername = UsernameSupport.requireValid(request.username)
+        if (userRepository.existsByUsername(normalizedUsername)) {
             throw ConflictException("Username already exists.")
         }
 
@@ -63,12 +70,14 @@ class AuthController(
         val encodedPassword = requireNotNull(passwordEncoder.encode(rawPassword))
         val user =
                 UserEntity(
-                        username = request.username,
+                        username = normalizedUsername,
+                        name = normalizedUsername,
                         passwordHash = encodedPassword
                 )
         userRepository.save(user)
 
-        val authentication = authenticate(request.username, rawPassword, httpRequest, httpResponse)
+        val authentication =
+                authenticate(normalizedUsername, rawPassword, httpRequest, httpResponse)
         return buildAuthResponse(authentication.name)
     }
 
@@ -99,6 +108,21 @@ class AuthController(
         return mapOf("status" to "ok")
     }
 
+    @PatchMapping("/name")
+    fun updateDisplayName(
+            @Valid @RequestBody request: DisplayNameRequest,
+            authentication: Authentication?
+    ): AuthResponse {
+        val username = authSupport.requireUsername(authentication)
+        val user =
+                userRepository.findByUsername(username)
+                        ?: throw NotFoundException("User not found")
+        val normalizedName = UserDisplayNameSupport.requireValid(request.name)
+        user.name = normalizedName
+        userRepository.save(user)
+        return buildAuthResponse(username)
+    }
+
     @PostMapping("/logout")
     fun logout(httpRequest: HttpServletRequest): Map<String, String> {
         httpRequest.session.invalidate()
@@ -124,6 +148,6 @@ class AuthController(
         val user =
                 userRepository.findByUsername(username)
                         ?: throw NotFoundException("User not found")
-        return AuthResponse(username = user.username, role = user.role.name)
+        return AuthResponse(username = user.username, name = user.name, role = user.role.name)
     }
 }

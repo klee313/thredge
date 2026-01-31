@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useDebouncedValue } from '../../lib/useDebouncedValue'
-import { AutosizeTextarea } from '../common/AutosizeTextarea'
+import { useDebouncedTextInput } from '../../hooks/useDebouncedTextInput'
+import { ComposerTextarea } from '../common/ComposerTextarea'
 import { uiTokens } from '../../lib/uiTokens'
 
 type EntryEditorProps = {
@@ -8,9 +7,10 @@ type EntryEditorProps = {
   onChange: (value: string) => void
   onSave: (value: string) => void
   onCancel: () => void
-  onComplete: () => void
+  onComplete: (value: string) => void
   isSaving: boolean
   isCompletePending?: boolean
+  ariaLabel: string
   labels: {
     save: string
     cancel: string
@@ -26,27 +26,15 @@ export function EntryEditor({
   onComplete,
   isSaving,
   isCompletePending,
+  ariaLabel,
   labels,
 }: EntryEditorProps) {
-  const [localValue, setLocalValue] = useState(initialValue)
-  const debouncedValue = useDebouncedValue(localValue, 500)
-
-  // Sync prop changes to local (in case of external updates)
-  useEffect(() => {
-    if (isSaving) {
-      return
-    }
-    if (initialValue !== debouncedValue && initialValue !== localValue) {
-      setLocalValue(initialValue)
-    }
-  }, [initialValue, isSaving])
-
-  // Sync to parent (debounced) - only when stable
-  useEffect(() => {
-    if (debouncedValue === localValue && debouncedValue !== initialValue) {
-      onChange(debouncedValue)
-    }
-  }, [debouncedValue, onChange, initialValue, localValue])
+  const { localValue, setLocalValue, reset } = useDebouncedTextInput({
+    value: initialValue,
+    onChange,
+    delayMs: 500,
+    isLocked: isSaving,
+  })
 
   return (
     <form
@@ -59,8 +47,9 @@ export function EntryEditor({
         onSave(localValue)
       }}
     >
-      <AutosizeTextarea
-        className="min-h-[72px] w-full resize-none overflow-y-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
+      <ComposerTextarea
+        minHeightClass="min-h-[72px]"
+        ariaLabel={ariaLabel}
         value={localValue}
         onChange={setLocalValue}
       />
@@ -75,15 +64,18 @@ export function EntryEditor({
         <button
           className={uiTokens.button.secondaryXs}
           type="button"
-          onClick={onComplete}
-          disabled={isCompletePending}
+          onClick={() => onComplete(localValue)}
+          disabled={isCompletePending || isSaving}
         >
           {labels.complete}
         </button>
         <button
           className={uiTokens.button.secondaryXs}
           type="button"
-          onClick={onCancel}
+          onClick={() => {
+            reset(initialValue)
+            onCancel()
+          }}
         >
           {labels.cancel}
         </button>

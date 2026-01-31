@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import xIcon from '../../assets/x.svg?raw'
 import { InlineIcon } from '../common/InlineIcon'
+import { useCategorySearch } from '../../hooks/useCategorySearch'
+import { uiTokens } from '../../lib/uiTokens'
 
 const searchIcon = `<svg viewBox="0 0 20 20" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M9 3.5a5.5 5.5 0 1 0 3.49 9.74l3.14 3.14a.75.75 0 0 0 1.06-1.06l-3.14-3.14A5.5 5.5 0 0 0 9 3.5Zm0 1.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" fill="currentColor"/></svg>`
 
@@ -45,20 +47,16 @@ export function CategoryFilterBar({
   onDeleteCategory,
   onCreateCategory,
 }: CategoryFilterBarProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [isFocusWithin, setIsFocusWithin] = useState(false)
   const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(false)
   const categoryPreviewLimit = 10
-  const trimmedSearch = searchQuery.trim()
-  const normalizedSearch = trimmedSearch.toLowerCase()
-  const filteredCategories = useMemo(() => {
-    if (!normalizedSearch) {
-      return categories
-    }
-    return categories.filter((category) =>
-      category.name.toLowerCase().includes(normalizedSearch),
-    )
-  }, [categories, normalizedSearch])
+  const { trimmed, normalized, filtered, hasExactMatch } = useCategorySearch(
+    categories,
+    searchQuery,
+  )
 
   type ListItem =
     | { type: 'header'; char: string }
@@ -70,7 +68,7 @@ export function CategoryFilterBar({
     const unselected: CategoryItem[] = []
 
     // Split into selected and unselected
-    filteredCategories.forEach((category) => {
+    filtered.forEach((category) => {
       if (selectedSet.has(category.name)) {
         selected.push(category)
       } else {
@@ -104,44 +102,54 @@ export function CategoryFilterBar({
     })
 
     return items
-  }, [filteredCategories, selectedCategories])
+  }, [filtered, selectedCategories])
 
   const visibleItems =
-    isSearchFocused || isCategoryListExpanded
+    isFocusWithin || isCategoryListExpanded
       ? groupedItems
       : groupedItems.slice(0, categoryPreviewLimit)
 
   const shouldShowCategoryExpand =
-    !isSearchFocused &&
+    !normalized &&
+    !isFocusWithin &&
     !isCategoryListExpanded &&
     groupedItems.length > categoryPreviewLimit
 
-  const hasExactCategoryMatch = useMemo(() => {
-    if (!normalizedSearch) {
-      return false
-    }
-    return categories.some((category) => category.name.toLowerCase() === normalizedSearch)
-  }, [categories, normalizedSearch])
-  const shouldShowCreate =
-    Boolean(trimmedSearch) && !hasExactCategoryMatch && Boolean(onCreateCategory)
-  const shouldEnableListScroll = isSearchFocused || isCategoryListExpanded
+  const shouldShowCreate = Boolean(trimmed) && !hasExactMatch && Boolean(onCreateCategory)
+  const shouldEnableListScroll = isFocusWithin || isCategoryListExpanded || Boolean(normalized)
   const shouldShowScrollHint =
     shouldEnableListScroll && groupedItems.length > categoryPreviewLimit
 
   return (
-    <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-1.5 py-1 sm:px-5 sm:py-4">
+    <div
+      ref={containerRef}
+      className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-1.5 py-1 sm:px-5 sm:py-4"
+      onFocusCapture={() => setIsFocusWithin(true)}
+      onBlurCapture={(event) => {
+        const container = event.currentTarget
+        window.setTimeout(() => {
+          if (!container.contains(document.activeElement)) {
+            setIsFocusWithin(false)
+          }
+        }, 0)
+      }}
+    >
       <div className="relative">
         <InlineIcon
           svg={searchIcon}
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--theme-muted)] [&>svg]:h-4 [&>svg]:w-4"
         />
+        <label className="sr-only" htmlFor="category-search-input">
+          {labels.categorySearchPlaceholder}
+        </label>
         <input
-          className="w-full rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] py-2 pl-9 pr-3 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60 focus-visible:border-[var(--theme-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]/30"
+          id="category-search-input"
+          className={`${uiTokens.input.base} py-2 pl-9 pr-3`}
           type="search"
           placeholder={labels.categorySearchPlaceholder}
+          aria-label={labels.categorySearchPlaceholder}
           value={searchQuery}
-          onFocus={() => setIsSearchFocused(true)}
-          onBlur={() => setIsSearchFocused(false)}
+          ref={inputRef}
           onChange={(event) => {
             setIsCategoryListExpanded(false)
             setSearchQuery(event.target.value)
@@ -183,12 +191,12 @@ export function CategoryFilterBar({
               <button
                 key={`header-${item.char}-${index}`}
                 className="flex h-[14px] w-[13px] items-center justify-center rounded-[1px] bg-[var(--theme-primary)] text-[10px] font-bold leading-none text-[var(--theme-on-primary)] hover:brightness-110"
-                type="button"
-                onClick={() => {
-                  setSearchQuery(item.char)
-                  setIsSearchFocused(true) // Optional: focus input
-                }}
-              >
+              type="button"
+              onClick={() => {
+                setSearchQuery(item.char)
+                inputRef.current?.focus()
+              }}
+            >
                 {item.char}
               </button>
             )
@@ -246,12 +254,15 @@ export function CategoryFilterBar({
               className="flex h-6 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[10px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"
               type="button"
               onClick={() => {
-                onCreateCategory?.(trimmedSearch)
+                if (isCreateCategoryPending) {
+                  return
+                }
+                onCreateCategory?.(trimmed)
                 setSearchQuery('')
               }}
               disabled={isCreateCategoryPending}
             >
-              '{trimmedSearch}' {labels.addCategory}
+              '{trimmed}' {labels.addCategory}
             </button>
             <button
               className="flex h-6 items-center justify-center rounded-full border border-[var(--theme-border)] px-2 text-[10px] font-semibold text-[var(--theme-ink)] transition-all hover:opacity-80"

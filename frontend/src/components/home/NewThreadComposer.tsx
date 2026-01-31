@@ -1,82 +1,140 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { uiTokens } from '../../lib/uiTokens'
-import { AutosizeTextarea } from '../common/AutosizeTextarea'
-import { useDebouncedValue } from '../../lib/useDebouncedValue'
+import { ComposerTextarea } from '../common/ComposerTextarea'
+import { useDebouncedTextInput } from '../../hooks/useDebouncedTextInput'
+import { ThreadCategorySelector } from './ThreadCategorySelector'
+import { useSettingsStore } from '../../store/settingsStore'
+
+type CategorySelectorProps = {
+  categories: { id: string; name: string }[]
+  selectedCategories: string[]
+  isCreateCategoryPending: boolean
+  onToggleCategory: (name: string) => void
+  onCategorySubmit: (value: string) => void
+  labels: {
+    categorySearchPlaceholder: string
+    loadMore: string
+    addCategory: string
+    cancelCategory: string
+  }
+}
 
 type NewThreadComposerProps = {
-    value: string
-    onChange: (value: string) => void
-    onSubmit: (value: string) => void
-    isSubmitting: boolean
+  title: string
+  displayName: string
+  username: string
+  value: string
+  onChange: (value: string) => void
+  onSubmit: (value: string) => void
+  isSubmitting: boolean
+  categorySelector?: CategorySelectorProps
 }
 
 export function NewThreadComposer({
+  title,
+  displayName,
+  username,
+  value: initialValue,
+  onChange,
+  onSubmit,
+  isSubmitting,
+  categorySelector,
+}: NewThreadComposerProps) {
+  const { t } = useTranslation()
+  const profileImageUrl = useSettingsStore((state) => state.profileImageUrl)
+  const profileInitial = useMemo(
+    () => displayName.trim().charAt(0).toUpperCase() || '?',
+    [displayName],
+  )
+  const { localValue, setLocalValue, reset } = useDebouncedTextInput({
     value: initialValue,
     onChange,
-    onSubmit,
-    isSubmitting,
-}: NewThreadComposerProps) {
-    const { t } = useTranslation()
-    const [localValue, setLocalValue] = useState(initialValue)
-    const debouncedValue = useDebouncedValue(localValue, 500)
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+    delayMs: 500,
+    isLocked: isSubmitting,
+  })
+  const [showSending, setShowSending] = useState(false)
+  const [categoryInput, setCategoryInput] = useState('')
+  const showCategorySelector = Boolean(categorySelector)
 
-    // Sync from prop to local if prop changes meaningfully (e.g. clear after submit)
-    // We need to be careful not to overwrite user input if the prop lag updates.
-    // But typically initialValue (state.threadBody) will only NOT match localValue if:
-    // 1. User is typing (local is newer).
-    // 2. Submission cleared it (prop is '').
-    // We can track the "last known prop" to detect external updates.
-    const lastPropRef = useRef(initialValue)
-
-    if (initialValue !== lastPropRef.current) {
-        if (initialValue === '') {
-            // External clear
-            if (localValue !== '') { // Only set if not already empty to avoid loops/renders
-                setLocalValue('')
-            }
-        }
-        lastPropRef.current = initialValue
+  useEffect(() => {
+    if (!showCategorySelector) {
+      setCategoryInput('')
     }
+  }, [showCategorySelector])
 
-    // Sync local to parent (debounced)
-    useEffect(() => {
-        // Only invoke onChange if it differs from what parent likely has
-        // But parent has 'value'. 
-        // Actually, simply calling onChange(debouncedValue) is safe because parent update won't cycle back 
-        // immediately to overwrite local due to the check above (initialValue !== lastPropRef.current).
-        // HOWEVER, if parent persistence assumes real-time, 500ms delay might be ok.
-        onChange(debouncedValue)
-    }, [debouncedValue, onChange])
+  useEffect(() => {
+    if (!showSending || isSubmitting) {
+      return
+    }
+    const timeout = window.setTimeout(() => {
+      setShowSending(false)
+    }, 600)
+    return () => window.clearTimeout(timeout)
+  }, [isSubmitting, showSending])
 
-    return (
-        <form
-            className="mt-2 space-y-2 sm:mt-3"
-            onSubmit={(event) => {
-                event.preventDefault()
-                if (!localValue.trim()) {
-                    return
-                }
-                onSubmit(localValue)
-            }}
-        >
-            <AutosizeTextarea
-                className="min-h-[96px] w-full resize-none overflow-y-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm text-[var(--theme-ink)] placeholder:text-[var(--theme-muted)] placeholder:opacity-60"
-                placeholder={t('home.threadBodyPlaceholder')}
-                value={localValue}
-                onChange={setLocalValue}
-                inputRef={(element) => {
-                    textareaRef.current = element
-                }}
-            />
-            <button
-                className={uiTokens.button.primaryMd}
-                type="submit"
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? t('common.loading') : t('home.createThread')}
-            </button>
-        </form>
-    )
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (!localValue.trim()) {
+          return
+        }
+        setShowSending(true)
+        onSubmit(localValue)
+        reset('')
+      }}
+    >
+      <div className="flex items-center gap-3 px-1">
+        {profileImageUrl ? (
+          <img
+            src={profileImageUrl}
+            alt={t('settings.profileImageAlt')}
+            className="h-10 w-10 rounded-full border border-[var(--theme-border)] object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-base)] text-sm font-semibold text-[var(--theme-ink)]">
+            {profileInitial}
+          </div>
+        )}
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-[var(--theme-ink)]">{displayName}</div>
+          <div className="text-xs text-[var(--theme-muted)]">@{username}</div>
+        </div>
+      </div>
+      <ComposerTextarea
+        minHeightClass="min-h-[96px]"
+        placeholder={t('home.threadBodyPlaceholder')}
+        ariaLabel={t('home.threadBodyPlaceholder')}
+        value={localValue}
+        onChange={setLocalValue}
+      />
+      {(isSubmitting || showSending) && (
+        <div className="text-xs text-[var(--theme-muted)]" role="status" aria-live="polite">
+          {t('home.threadSending')}
+        </div>
+      )}
+      {showCategorySelector && categorySelector && (
+        <ThreadCategorySelector
+          categories={categorySelector.categories}
+          selectedCategories={categorySelector.selectedCategories}
+          editingCategoryInput={categoryInput}
+          isCreateCategoryPending={categorySelector.isCreateCategoryPending}
+          onToggleCategory={categorySelector.onToggleCategory}
+          onCategoryInputChange={setCategoryInput}
+          onCategoryCancel={() => setCategoryInput('')}
+          onCategorySubmit={(value) => {
+            categorySelector.onCategorySubmit(value)
+            setCategoryInput('')
+          }}
+          labels={categorySelector.labels}
+        />
+      )}
+      <button className={uiTokens.button.primaryMd} type="submit" disabled={isSubmitting}>
+        {isSubmitting ? t('common.loading') : t('home.createThread')}
+      </button>
+    </form>
+  )
 }

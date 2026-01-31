@@ -86,6 +86,8 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         left join EntryEntity e on e.thread = t
         where t.ownerId = :ownerId
           and t.isHidden = false
+          and t.createdAt >= :startAt
+          and t.createdAt < :endAt
           and (
             coalesce(:categoryIds, null) is null
             or c.id in :categoryIds
@@ -104,6 +106,8 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
                 @Param("query") query: String,
                 @Param("categoryIds") categoryIds: List<java.util.UUID>?,
                 @Param("includeUncategorized") includeUncategorized: Boolean,
+                @Param("startAt") startAt: java.time.Instant,
+                @Param("endAt") endAt: java.time.Instant,
                 pageable: Pageable,
         ): Slice<ThreadEntity>
 

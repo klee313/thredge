@@ -1,5 +1,6 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { formatDateInput, parseDateInput } from '../lib/date'
 
 export const useDateFilter = (locale: string) => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -11,28 +12,25 @@ export const useDateFilter = (locale: string) => {
       day: 'numeric',
     }).format(date)
 
-  const formatDateInput = (date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
-  const parseDateInput = (value: string) => {
-    if (!value) {
-      return null
-    }
-    const [year, month, day] = value.split('-').map(Number)
-    if (!year || !month || !day) {
-      return null
-    }
-    return new Date(year, month - 1, day)
-  }
-
   const selectedDate = useMemo(() => {
     const dateStr = searchParams.get('date')
     return dateStr ? parseDateInput(dateStr) : null
   }, [searchParams])
+
+  useEffect(() => {
+    const dateStr = searchParams.get('date')
+    if (!dateStr) {
+      return
+    }
+    if (parseDateInput(dateStr)) {
+      return
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('date')
+      return next
+    }, { replace: true })
+  }, [parseDateInput, searchParams, setSearchParams])
 
   const setSelectedDate = useCallback((date: Date | null) => {
     setSearchParams(prev => {
