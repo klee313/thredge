@@ -12,6 +12,8 @@ interface EntryRepository : JpaRepository<EntryEntity, UUID> {
         fun findByThreadIdOrderByOrderIndexAsc(threadId: UUID): List<EntryEntity>
         fun findByThreadIdAndIsHiddenFalseOrderByOrderIndexAsc(threadId: UUID): List<EntryEntity>
         fun findByThreadIdInOrderByOrderIndexAsc(threadIds: Collection<UUID>): List<EntryEntity>
+        fun deleteByThreadId(threadId: UUID): Int
+        fun existsByParentEntryIdAndThreadOwnerId(parentEntryId: UUID, ownerId: UUID): Boolean
 
         @Query(
                 "select e.thread.id, count(e) from EntryEntity e where e.thread.id in :threadIds and e.isHidden = false group by e.thread.id"

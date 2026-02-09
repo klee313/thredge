@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import type { UseQueryResult } from '@tanstack/react-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -17,21 +18,26 @@ export default function App() {
   const navigate = useNavigate()
   const { setError: setGlobalError } = useGlobalErrorStore()
 
-  const authQuery = useQuery<AuthUser | null>({
+  const authQuery = useQuery<AuthUser | null, Error>({
     queryKey: queryKeys.auth.me,
     queryFn: ({ signal }) => fetchMe({ signal }),
     retry: false,
     meta: { suppressGlobalError: true },
-    onError: (error) => {
-      const message =
-        error instanceof ApiError
-          ? error.label
-          : error instanceof Error
-            ? error.message
-            : 'Auth check failed'
-      setGlobalError(message, { source: 'auth' })
-    },
   })
+
+  useEffect(() => {
+    if (!authQuery.isError || !authQuery.error) {
+      return
+    }
+    const error = authQuery.error
+    const message =
+      error instanceof ApiError
+        ? error.label
+        : error instanceof Error
+          ? error.message
+          : 'Auth check failed'
+    setGlobalError(message, { source: 'auth' })
+  }, [authQuery.error, authQuery.isError, setGlobalError])
 
   const logoutMutation = useMutation<void, unknown, void, { previousAuth?: AuthUser | null }>({
     mutationFn: logout,

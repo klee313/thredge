@@ -7,6 +7,7 @@ import { EntryEditor } from './EntryEditor'
 import { ReplyComposer } from './ReplyComposer'
 import { Tooltip } from '../common/Tooltip'
 import { useEntryPressDrag } from '../../hooks/useEntryPressDrag'
+import { MarkdownContent } from '../common/MarkdownContent'
 
 type EntryCardProps = {
   data: EntryCardData
@@ -58,6 +59,8 @@ export function EntryCard({
     : isDragActive
       ? 'cursor-grabbing select-none touch-none'
       : 'cursor-default'
+  const entryBody = muted ? stripMutedText(entry.body) : entry.body
+  const shouldRenderMarkdown = Boolean(entry.isMarkdown)
   const {
     handlePointerDown,
     handlePointerMove,
@@ -89,27 +92,36 @@ export function EntryCard({
         <EntryEditor
           value={editingBody}
           onChange={onEditChange}
+          initialIsMarkdown={Boolean(entry.isMarkdown)}
           onSave={onEditSave}
           onCancel={onEditCancel}
-          onComplete={(value) => {
+          onComplete={(value, isMarkdown) => {
             const base = value.trim() ? value : entry.body
-            onToggleMute(toggleMutedText(base))
+            onToggleMute(toggleMutedText(base), isMarkdown)
           }}
           isSaving={isEntryUpdatePending}
           isCompletePending={isEntryToggleMutePending}
-          ariaLabel={t('common.editEntry')}
-          labels={{ save: t('common.save'), cancel: t('common.cancel'), complete: t('common.complete') }}
+          labels={{
+            save: t('common.save'),
+            cancel: t('common.cancel'),
+            complete: t('common.complete'),
+            markdown: t('common.markdownEnabled'),
+          }}
         />
       ) : (
         <>
           <div
-            className={`mb-2 whitespace-pre-wrap text-sm ${muted
+            className={`mb-2 text-sm ${shouldRenderMarkdown ? '' : 'whitespace-pre-wrap'} ${muted
               ? 'text-[var(--theme-muted)] opacity-50 line-through'
               : 'text-[var(--theme-ink)]'
               }`}
             data-no-drag="true"
           >
-            {highlightMatches(muted ? stripMutedText(entry.body) : entry.body, highlightQuery)}
+            {shouldRenderMarkdown ? (
+              <MarkdownContent value={entryBody} className="markdown-body" />
+            ) : (
+              highlightMatches(entryBody, highlightQuery)
+            )}
           </div>
           <div
             className="absolute bottom-2 left-2 flex items-center gap-2 text-xs text-[var(--theme-muted)]"

@@ -8,6 +8,9 @@ object ValidationMessages {
     const val PASSWORD_REQUIRED = "Password is required."
     const val QUERY_REQUIRED = "Query is required."
     const val TITLE_REQUIRED = "Title is required."
+    const val TODO_TASK_REQUIRED = "Task is required."
+    const val TODO_DEADLINE_REQUIRED = "Deadline is required."
+    const val TODO_PRIORITY_REQUIRED = "Priority is required."
     const val USERNAME_INVALID = "Username may only contain letters, numbers, and underscores."
     const val USERNAME_REQUIRED = "Username is required."
 }

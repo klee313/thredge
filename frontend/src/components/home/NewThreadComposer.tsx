@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { uiTokens } from '../../lib/uiTokens'
-import { ComposerTextarea } from '../common/ComposerTextarea'
+import { MilkdownEditor } from '../common/MilkdownEditor'
 import { useDebouncedTextInput } from '../../hooks/useDebouncedTextInput'
 import { ThreadCategorySelector } from './ThreadCategorySelector'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -53,6 +53,7 @@ export function NewThreadComposer({
     delayMs: 500,
     isLocked: isSubmitting,
   })
+  const [editorSeed, setEditorSeed] = useState(0)
   const [showSending, setShowSending] = useState(false)
   const [categoryInput, setCategoryInput] = useState('')
   const showCategorySelector = Boolean(categorySelector)
@@ -84,8 +85,12 @@ export function NewThreadComposer({
         setShowSending(true)
         onSubmit(localValue)
         reset('')
+        setEditorSeed((prev) => prev + 1)
       }}
     >
+      <div className="px-2 text-xs font-semibold tracking-wide text-[var(--theme-muted)] sm:px-1">
+        {title}
+      </div>
       <div className="flex items-center gap-3 px-1">
         {profileImageUrl ? (
           <img
@@ -104,12 +109,14 @@ export function NewThreadComposer({
           <div className="text-xs text-[var(--theme-muted)]">@{username}</div>
         </div>
       </div>
-      <ComposerTextarea
+      <MilkdownEditor
         minHeightClass="min-h-[96px]"
         placeholder={t('home.threadBodyPlaceholder')}
-        ariaLabel={t('home.threadBodyPlaceholder')}
-        value={localValue}
+        initialValue={localValue}
+        valueForPlaceholder={localValue}
         onChange={setLocalValue}
+        isDisabled={isSubmitting}
+        resetKey={editorSeed}
       />
       {(isSubmitting || showSending) && (
         <div className="text-xs text-[var(--theme-muted)]" role="status" aria-live="polite">

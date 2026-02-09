@@ -50,6 +50,8 @@ void i18n
   .init({
     resources,
     supportedLngs: supportedLanguages,
+    nonExplicitSupportedLngs: true,
+    load: 'languageOnly',
     fallbackLng: 'en',
     lng: preferredLanguage ?? undefined,
     interpolation: { escapeValue: false },

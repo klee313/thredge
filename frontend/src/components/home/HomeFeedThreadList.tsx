@@ -79,7 +79,7 @@ export function HomeFeedThreadList({ controller }: HomeFeedThreadListProps) {
         </div>
       )}
       <div className={`${uiTokens.card.surface} pt-2 sm:pt-4`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1 sm:px-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-2 sm:px-0">
           <div className="text-sm font-semibold">
             {normalizedSearchQuery
               ? t('home.searchTitle', {

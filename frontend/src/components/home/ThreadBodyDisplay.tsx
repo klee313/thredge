@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { highlightMatches } from '../../lib/highlightMatches'
+import { MarkdownContent } from '../common/MarkdownContent'
 
 type ThreadBodyDisplayProps = {
   displayTitle?: string | null
@@ -10,6 +11,7 @@ type ThreadBodyDisplayProps = {
   hasHtmlLineBreaks?: boolean
   highlightQuery: string
   linkTo?: string
+  isMarkdown?: boolean
 }
 
 const renderTitleContent = (title: string, highlightQuery: string) => (
@@ -29,11 +31,16 @@ export function ThreadBodyDisplay({
   hasHtmlLineBreaks = false,
   highlightQuery,
   linkTo,
+  isMarkdown = false,
 }: ThreadBodyDisplayProps) {
   const mutedClass = isMuted
     ? 'text-[var(--theme-muted)] opacity-50 line-through'
     : 'text-[var(--theme-ink)]'
-  const whitespaceClass = hasHtmlLineBreaks ? 'whitespace-normal' : 'whitespace-pre-wrap'
+  const whitespaceClass = isMarkdown
+    ? 'whitespace-normal'
+    : hasHtmlLineBreaks
+      ? 'whitespace-normal'
+      : 'whitespace-pre-wrap'
 
   return (
     <>
@@ -55,9 +62,13 @@ export function ThreadBodyDisplay({
       )}
       {bodyText && (
         <div
-          className={`flex flex-col ${bodySpacingClass} ${whitespaceClass} text-sm ${mutedClass}`}
+          className={`${bodySpacingClass} ${whitespaceClass} text-sm ${mutedClass}`}
         >
-          {renderBodyContent(bodyText, highlightQuery)}
+          {isMarkdown ? (
+            <MarkdownContent value={bodyText} className="markdown-body" />
+          ) : (
+            renderBodyContent(bodyText, highlightQuery)
+          )}
         </div>
       )}
     </>

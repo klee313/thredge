@@ -10,13 +10,21 @@ import { buildEntryOrder } from '../lib/entryOrder'
 import { useEntryDragState } from './useEntryDragState'
 import { getThreadDisplay } from '../lib/threadDisplay'
 import { useComposerFocusState } from './useComposerFocusState'
+import { buildTodoExampleTable, parseTodoTable } from '../lib/todoTable'
 
 type UseThreadDetailControllerOptions = {
   threadId: string
   username?: string
+  autoEditThread?: boolean
+  autoInsertTodoExample?: boolean
 }
 
-export const useThreadDetailController = ({ threadId, username }: UseThreadDetailControllerOptions) => {
+export const useThreadDetailController = ({
+  threadId,
+  username,
+  autoEditThread,
+  autoInsertTodoExample,
+}: UseThreadDetailControllerOptions) => {
   const navigate = useNavigate()
   const { state, actions } = useThreadDetailState(threadId, username)
   const {
@@ -28,6 +36,8 @@ export const useThreadDetailController = ({ threadId, username }: UseThreadDetai
     clearReplyComposerFocus,
   } = useComposerFocusState()
   const didAutoFocusEntryComposer = useRef(false)
+  const didAutoEditThread = useRef(false)
+  const didSyncEmptyEditBody = useRef(false)
   const {
     entryBody,
     replyDrafts,
@@ -55,6 +65,8 @@ export const useThreadDetailController = ({ threadId, username }: UseThreadDetai
 
   useEffect(() => {
     didAutoFocusEntryComposer.current = false
+    didAutoEditThread.current = false
+    didSyncEmptyEditBody.current = false
   }, [threadId])
 
   useEffect(() => {
@@ -110,6 +122,52 @@ export const useThreadDetailController = ({ threadId, username }: UseThreadDetai
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadQuery.data])
+
+  useEffect(() => {
+    if (!threadQuery.data || !isEditingThread || didSyncEmptyEditBody.current) {
+      return
+    }
+    if (editingThreadBody.trim()) {
+      didSyncEmptyEditBody.current = true
+      return
+    }
+    didSyncEmptyEditBody.current = true
+    threadActions.setEditingThreadBody(threadQuery.data.body ?? '')
+  }, [editingThreadBody, isEditingThread, threadActions, threadQuery.data])
+
+  useEffect(() => {
+    if (!autoEditThread || didAutoEditThread.current || !threadQuery.data) {
+      return
+    }
+    if (isEditingThread) {
+      if (!editingThreadBody.trim()) {
+        threadActions.setEditingThreadBody(threadQuery.data.body ?? '')
+      }
+      didAutoEditThread.current = true
+      return
+    }
+    didAutoEditThread.current = true
+    threadActions.startEditThread(threadQuery.data)
+    if (!autoInsertTodoExample) {
+      return
+    }
+    const body = threadQuery.data.body ?? ''
+    const hasTable = Boolean(parseTodoTable(body))
+    if (hasTable) {
+      return
+    }
+    const exampleTable = buildTodoExampleTable()
+    const nextBody = body.trim()
+      ? `${body.trimEnd()}\n\n${exampleTable}`
+      : exampleTable
+    threadActions.setEditingThreadBody(nextBody)
+  }, [
+    autoEditThread,
+    autoInsertTodoExample,
+    isEditingThread,
+    threadActions,
+    threadQuery.data,
+  ])
 
   const visibleEntries = useMemo(() => {
     const entries = threadQuery.data?.entries ?? []

@@ -24,6 +24,211 @@ body {
   margin: 0;
 }
 
+.milkdown {
+  min-height: 100%;
+  width: 100%;
+}
+
+[data-milkdown-root] {
+  min-height: 100%;
+}
+
+.milkdown .editor {
+  min-height: 100%;
+  outline: none;
+  cursor: text;
+}
+
+.milkdown .editor h1 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.milkdown .editor h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.milkdown .editor h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.milkdown .editor p {
+  margin: 0 0 0.75rem 0;
+}
+
+.milkdown .editor p:last-child {
+  margin-bottom: 0;
+}
+
+.milkdown .editor ul,
+.milkdown .editor ol {
+  margin: 0 0 0.75rem 1.25rem;
+  padding: 0;
+}
+
+.milkdown .editor ul {
+  list-style: disc;
+}
+
+.milkdown .editor ol {
+  list-style: decimal;
+}
+
+.milkdown .editor ul ul {
+  list-style: circle;
+  margin-left: 1.1rem;
+}
+
+.milkdown .editor ul ul ul {
+  list-style: square;
+  margin-left: 1rem;
+}
+
+.milkdown .editor ol ol {
+  list-style: lower-alpha;
+  margin-left: 1.1rem;
+}
+
+.milkdown .editor ol ol ol {
+  list-style: lower-roman;
+  margin-left: 1rem;
+}
+
+.milkdown .editor li {
+  margin: 0.25rem 0;
+}
+
+.milkdown .editor code {
+  border-radius: 4px;
+  background: var(--theme-base);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+.milkdown .editor pre {
+  margin: 0 0 0.75rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-base);
+  padding: 0.75rem 0.9rem;
+  overflow-x: auto;
+}
+
+.milkdown .editor pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.milkdown .editor hr {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid var(--theme-border);
+}
+
+.markdown-body {
+  color: var(--theme-ink);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.markdown-body p {
+  margin: 0 0 0.75rem 0;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body h1 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.markdown-body h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.markdown-body h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.markdown-body hr {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid var(--theme-border);
+}
+
+.markdown-body a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 0.75rem 1.25rem;
+  padding: 0;
+}
+
+.markdown-body ul {
+  list-style: disc;
+}
+
+.markdown-body ol {
+  list-style: decimal;
+}
+
+.markdown-body ul ul {
+  list-style: circle;
+  margin-left: 1.1rem;
+}
+
+.markdown-body ul ul ul {
+  list-style: square;
+  margin-left: 1rem;
+}
+
+.markdown-body ol ol {
+  list-style: lower-alpha;
+  margin-left: 1.1rem;
+}
+
+.markdown-body ol ol ol {
+  list-style: lower-roman;
+  margin-left: 1rem;
+}
+
+.markdown-body li {
+  margin: 0.25rem 0;
+}
+
+.markdown-body code {
+  border-radius: 4px;
+  background: var(--theme-base);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.8rem;
+}
+
+.markdown-body pre code {
+  display: block;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
 .scrollbar-hidden {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -31,4 +236,9 @@ body {
 
 .scrollbar-hidden::-webkit-scrollbar {
   display: none;
+}
+
+.mask-scroll {
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 80%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 80%, rgba(0, 0, 0, 0) 100%);
 }

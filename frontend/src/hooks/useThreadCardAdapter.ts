@@ -41,7 +41,6 @@ export const useThreadCardAdapter = ({
     threadActions,
     entryActions,
     replyActions,
-    setEntryComposerFocusId,
     setReplyComposerFocusId,
     clearEntryComposerFocus,
     clearReplyComposerFocus,
@@ -150,11 +149,12 @@ export const useThreadCardAdapter = ({
         threadActions.setIsAddingEditingCategory(false)
       },
       onEditingCategorySubmit: submitEditingCategory,
-      onSaveEdit: (value: string) => {
+      onSaveEdit: (value: string, isMarkdown: boolean) => {
         updateThreadMutation.mutate({
           threadId: thread.id,
           body: value,
           categoryNames: editingThreadCategories,
+          isMarkdown,
         })
       },
       onTogglePin: () => {
@@ -164,7 +164,7 @@ export const useThreadCardAdapter = ({
           pinThreadMutation.mutate(thread.id)
         }
       },
-      onToggleMute: (value: string) => {
+      onToggleMute: (value: string, isMarkdown: boolean) => {
         if (!value.trim()) {
           return
         }
@@ -172,6 +172,7 @@ export const useThreadCardAdapter = ({
           threadId: thread.id,
           body: toggleMutedText(value),
           categoryNames: thread.categories.map((item) => item.name),
+          isMarkdown,
         })
       },
       onHide: () => hideThreadMutation.mutate(thread.id),
@@ -179,12 +180,22 @@ export const useThreadCardAdapter = ({
         entryActions.startEntryEdit({ id: entryId, body }),
       onEntryEditChange: entryActions.setEditingEntryBody,
       onEntryEditCancel: entryActions.cancelEntryEdit,
-      onEntryEditSave: (entryId: string, value?: string) => {
-        const body = value ?? editingEntryBody
-        updateEntryMutation.mutate({ entryId, body, threadId: thread.id })
+      onEntryEditSave: (entryId: string, value: string, isMarkdown: boolean) => {
+        const body = value
+        updateEntryMutation.mutate({
+          entryId,
+          body,
+          isMarkdown,
+          threadId: thread.id,
+        })
       },
-      onEntryToggleMute: (entryId: string, body: string) => {
-        toggleEntryMuteMutation.mutate({ entryId, body, threadId: thread.id })
+      onEntryToggleMute: (entryId: string, body: string, isMarkdown: boolean) => {
+        toggleEntryMuteMutation.mutate({
+          entryId,
+          body,
+          isMarkdown,
+          threadId: thread.id,
+        })
       },
       onEntryHide: (entryId: string) => hideEntryMutation.mutate({ entryId, threadId: thread.id }),
       onEntryMoveTo: async (

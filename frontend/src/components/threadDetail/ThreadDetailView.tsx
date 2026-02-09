@@ -136,23 +136,21 @@ export function ThreadDetailView({ controller, onBack }: ThreadDetailViewProps) 
               onEditingCategoryToggle={threadActions.toggleEditingCategory}
             />
             {isEditingThread ? (
-              <div
-                className={(() => {
-                  return threadDisplay.hasDerivedTitle ? '' : 'mt-6'
-                })()}
-              >
+              <div className="mt-6 sm:mt-8">
                 <ThreadEditor
-                  value={editingThreadBody}
+                  value={editingThreadBody || threadQuery.data.body || ''}
                   onChange={threadActions.setEditingThreadBody}
-                  onSave={() =>
+                  initialIsMarkdown={Boolean(threadQuery.data.isMarkdown)}
+                  onSave={(value, isMarkdown) =>
                     updateThreadMutation.mutate({
                       threadId: threadQuery.data.id,
-                      body: editingThreadBody,
+                      body: value,
                       categoryNames: editingThreadCategories,
+                      isMarkdown,
                     })
                   }
                   onCancel={() => threadActions.cancelEditThread(threadQuery.data)}
-                  onComplete={(value) => {
+                  onComplete={(value, isMarkdown) => {
                     const base = value.trim() ? value : threadQuery.data.body
                     if (!base) {
                       return
@@ -161,6 +159,7 @@ export function ThreadDetailView({ controller, onBack }: ThreadDetailViewProps) 
                       threadId: threadQuery.data.id,
                       body: toggleMutedText(base),
                       categoryNames: threadQuery.data.categories.map((item) => item.name),
+                      isMarkdown,
                     })
                   }}
                   categories={categoriesQuery.data ?? []}
@@ -181,6 +180,7 @@ export function ThreadDetailView({ controller, onBack }: ThreadDetailViewProps) 
                     saving: t('common.loading'),
                     cancel: t('common.cancel'),
                     complete: t('common.complete'),
+                    markdown: t('common.markdownEnabled'),
                     categorySearchPlaceholder: t('home.categorySearchPlaceholder'),
                     addCategory: t('home.addCategory'),
                     cancelCategory: t('common.cancel'),
@@ -196,10 +196,11 @@ export function ThreadDetailView({ controller, onBack }: ThreadDetailViewProps) 
                 bodySpacingClass={threadDisplay.bodySpacingClass}
                 hasHtmlLineBreaks={threadDisplay.hasHtmlLineBreaks}
                 highlightQuery=""
+                isMarkdown={threadQuery.data.isMarkdown}
               />
             )}
             {dragError && <div className="mt-3 text-xs text-red-600">{dragError}</div>}
-            <ThreadDetailEntries
+              <ThreadDetailEntries
               orderedEntries={orderedEntries}
               entryDepth={entryDepth}
               themeEntryClass={theme.entry}
@@ -230,12 +231,13 @@ export function ThreadDetailView({ controller, onBack }: ThreadDetailViewProps) 
                   entryActions.setEditingEntryBody(val)
                 },
                 onEditCancel: entryActions.cancelEntryEdit,
-                onEditSave: (entry, val) => {
-                  const bodyToSave = val ?? editingEntryBody
+                onEditSave: (entry, val, isMarkdown) => {
+                  const bodyToSave = val
                   void updateEntryMutation
                     .mutateAsync({
                       entryId: entry.id,
                       body: bodyToSave,
+                      isMarkdown,
                       threadId,
                     })
                     .then(() => {
@@ -245,10 +247,11 @@ export function ThreadDetailView({ controller, onBack }: ThreadDetailViewProps) 
                       reportEntryError('updateEntry', error)
                     })
                 },
-                onToggleMute: (entry, nextBody) => {
+                onToggleMute: (entry, nextBody, isMarkdown) => {
                   void toggleEntryMuteMutation.mutateAsync({
                     entryId: entry.id,
                     body: nextBody,
+                    isMarkdown,
                     threadId,
                   })
                 },

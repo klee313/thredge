@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.http.ResponseEntity
 
 @RestController
 @RequestMapping("/api/threads")
@@ -139,6 +140,16 @@ class ThreadController(
                 return threadService.createThread(ownerUsername, request)
         }
 
+        @GetMapping("/todo/oldest")
+        fun getOldestTodoThread(
+                authentication: Authentication?,
+        ): ResponseEntity<ThreadDetail> {
+                val ownerUsername = authSupport.requireUsername(authentication)
+                val thread = threadService.getOldestThreadByCategory(ownerUsername, "todo")
+                        ?: return ResponseEntity.noContent().build()
+                return ResponseEntity.ok(thread)
+        }
+
         @GetMapping("/{id}")
         fun getThread(
                 @PathVariable id: String,
@@ -185,6 +196,16 @@ class ThreadController(
         ): ThreadSummary {
                 val ownerUsername = authSupport.requireUsername(authentication)
                 return threadService.restoreThread(ownerUsername, id)
+        }
+
+        @DeleteMapping("/{id}/purge")
+        fun purgeThread(
+                @PathVariable id: String,
+                authentication: Authentication?,
+        ): Map<String, String> {
+                val ownerUsername = authSupport.requireUsername(authentication)
+                threadService.purgeThread(ownerUsername, id)
+                return mapOf("status" to "ok")
         }
 
         @PostMapping("/{id}/pin")

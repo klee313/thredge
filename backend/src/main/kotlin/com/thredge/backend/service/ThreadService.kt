@@ -200,6 +200,7 @@ class ThreadService(
                                 title = title,
                                 body = body,
                                 ownerId = ownerId,
+                                isMarkdown = true,
                         )
                         .apply { this.categories = categories.toMutableSet() }
         val saved = threadRepository.save(thread)
@@ -219,6 +220,19 @@ class ThreadService(
         return buildThreadDetail(thread)
     }
 
+    @Transactional(readOnly = true)
+    fun getOldestThreadByCategory(ownerUsername: String, categoryName: String): ThreadDetail? {
+        val ownerId = userSupport.requireUserId(ownerUsername)
+        val thread =
+                threadRepository
+                        .findFirstByOwnerIdAndIsHiddenFalseAndCategoriesNameIgnoreCaseOrderByCreatedAtAsc(
+                                ownerId,
+                                categoryName
+                        )
+                        ?: return null
+        return buildThreadDetail(thread)
+    }
+
     @Transactional
     fun updateThread(
             ownerUsername: String,
@@ -234,6 +248,7 @@ class ThreadService(
         } else if (!request.title.isNullOrBlank()) {
             thread.title = request.title.trim()
         }
+        request.isMarkdown?.let { thread.isMarkdown = it }
 
         request.categoryNames?.let { names ->
             val oldCategories = thread.categories.toList()
@@ -273,6 +288,19 @@ class ThreadService(
             it.threadCount -= 1
             categoryRepository.save(it)
         }
+    }
+
+    @Transactional
+    fun purgeThread(ownerUsername: String, id: String) {
+        val ownerId = userSupport.requireUserId(ownerUsername)
+        val thread = findThread(id, ownerId, includeHidden = true)
+        if (!thread.isHidden) {
+            throw BadRequestException("Thread must be hidden before permanent deletion.")
+        }
+        val threadId = thread.id ?: throw NotFoundException("Thread not found.")
+        entryRepository.deleteByThreadId(threadId)
+        threadRepository.deleteCategoryLinksByThreadId(threadId)
+        threadRepository.delete(thread)
     }
 
     @Transactional
@@ -356,6 +384,7 @@ class ThreadService(
                                 parentEntryId = parentEntryId,
                                 orderIndex = maxOrderIndex + 1000L,
                                 depth = parentDepth + 1,
+                                isMarkdown = true,
                         ),
                 )
         thread.lastActivityAt = Instant.now()

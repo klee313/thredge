@@ -25,6 +25,7 @@ class ThreadMapper {
                     lastActivityAt = thread.lastActivityAt,
                     categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
                     pinned = thread.isPinned,
+                    isMarkdown = thread.isMarkdown,
             )
 
     fun toThreadDetail(thread: ThreadEntity, entries: List<EntryEntity>): ThreadDetail =
@@ -36,6 +37,7 @@ class ThreadMapper {
                     lastActivityAt = thread.lastActivityAt,
                     categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
                     pinned = thread.isPinned,
+                    isMarkdown = thread.isMarkdown,
                     entries = entries.filter { !it.isHidden }.map { toEntryDetail(it, null) },
             )
 
@@ -49,6 +51,7 @@ class ThreadMapper {
                     categories = thread.categories.sortedBy { it.name }.map(::toCategorySummary),
                     pinned = thread.isPinned,
                     entryCount = entryCount,
+                    isMarkdown = thread.isMarkdown,
             )
 
     fun toEntryDetail(
@@ -58,6 +61,7 @@ class ThreadMapper {
             EntryDetail(
                     id = entry.id.toString(),
                     body = entry.body,
+                    isMarkdown = entry.isMarkdown,
                     parentEntryId = entry.parentEntryId?.toString(),
                     orderIndex = entry.orderIndex,
                     createdAt = entry.createdAt,

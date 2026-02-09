@@ -7,6 +7,7 @@ export type SettingsState = {
   themePreset: string
   themeCustomColor: string
   pinchZoomEnabled: boolean
+  showTodoPanel: boolean
   profileImageUrl: string | null
   setAll: (next: Omit<SettingsState, 'setAll' | 'setPartial'>) => void
   setPartial: (next: Partial<Omit<SettingsState, 'setAll' | 'setPartial'>>) => void
@@ -19,6 +20,7 @@ export const useSettingsStore = create<SettingsState>()(
       themePreset: 'graphite',
       themeCustomColor: '#111827',
       pinchZoomEnabled: true,
+      showTodoPanel: true,
       profileImageUrl: null,
       setAll: (next) => set(next),
       setPartial: (next) => set((prev) => ({ ...prev, ...next })),

@@ -10,6 +10,7 @@ type ThreadCardBodySectionProps = {
   isMuted: boolean
   bodySpacingClass: string
   hasHtmlLineBreaks: boolean
+  isMarkdown: boolean
   normalizedSearchQuery: string
   linkTo: string
   categories: CategorySummary[]
@@ -23,13 +24,14 @@ type ThreadCardBodySectionProps = {
   onEditingCategoryInputChange: (value: string) => void
   onEditingCategoryCancel: () => void
   onEditingCategorySubmit: (value: string) => void
-  onSaveEdit: (value: string) => void
+  onSaveEdit: (value: string, isMarkdown: boolean) => void
   onCancelEdit: () => void
-  onToggleMute: (value: string) => void
+  onToggleMute: (value: string, isMarkdown: boolean) => void
   labels: {
     save: string
     cancel: string
     complete: string
+    markdown: string
     categorySearchPlaceholder: string
     addCategory: string
     cancelCategory: string
@@ -44,6 +46,7 @@ export function ThreadCardBodySection({
   isMuted,
   bodySpacingClass,
   hasHtmlLineBreaks,
+  isMarkdown,
   normalizedSearchQuery,
   linkTo,
   categories,
@@ -82,6 +85,7 @@ export function ThreadCardBodySection({
           <ThreadEditor
             value={editingThreadBody}
             onChange={onEditingThreadBodyChange}
+            initialIsMarkdown={isMarkdown}
             onSave={onSaveEdit}
             onCancel={onCancelEdit}
             onComplete={onToggleMute}
@@ -98,6 +102,7 @@ export function ThreadCardBodySection({
               save: labels.save,
               cancel: labels.cancel,
               complete: labels.complete,
+              markdown: labels.markdown,
               categorySearchPlaceholder: labels.categorySearchPlaceholder,
               addCategory: labels.addCategory,
               cancelCategory: labels.cancelCategory,
@@ -118,6 +123,7 @@ export function ThreadCardBodySection({
         hasHtmlLineBreaks={hasHtmlLineBreaks}
         highlightQuery={normalizedSearchQuery}
         linkTo={linkTo}
+        isMarkdown={isMarkdown}
       />
   )
 }

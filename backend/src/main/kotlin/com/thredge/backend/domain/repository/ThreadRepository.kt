@@ -5,6 +5,7 @@ import java.util.UUID
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Slice
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
@@ -151,4 +152,18 @@ interface ThreadRepository : JpaRepository<ThreadEntity, UUID> {
         fun countUncategorizedThreads(
                 @Param("ownerId") ownerId: UUID,
         ): Long
+
+        fun findFirstByOwnerIdAndIsHiddenFalseAndCategoriesNameIgnoreCaseOrderByCreatedAtAsc(
+                ownerId: UUID,
+                name: String,
+        ): ThreadEntity?
+
+        @Modifying
+        @Query(
+                value = "delete from thread_categories where thread_id = :threadId",
+                nativeQuery = true,
+        )
+        fun deleteCategoryLinksByThreadId(
+                @Param("threadId") threadId: UUID,
+        ): Int
 }

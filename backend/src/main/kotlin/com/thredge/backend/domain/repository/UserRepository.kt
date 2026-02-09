@@ -8,4 +8,6 @@ interface UserRepository : JpaRepository<UserEntity, UUID> {
     fun findByUsername(username: String): UserEntity?
 
     fun existsByUsername(username: String): Boolean
+
+    fun findByOauthProviderAndOauthSubject(oauthProvider: String, oauthSubject: String): UserEntity?
 }

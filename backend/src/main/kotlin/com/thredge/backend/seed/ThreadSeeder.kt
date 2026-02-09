@@ -39,18 +39,21 @@ class ThreadSeeder(
                     body = "Outline the request mode switch and scope selector UX.",
                     lastActivityAt = now.minusSeconds(60 * 60 * 24),
                     ownerId = user.id,
+                    isMarkdown = true,
                 ),
                 ThreadEntity(
                     title = "Thread and entry UX",
                     body = "Keep entries chronological and hide edit controls.",
                     lastActivityAt = now.minusSeconds(60 * 60 * 48),
                     ownerId = user.id,
+                    isMarkdown = true,
                 ),
                 ThreadEntity(
                     title = "Hide policy scenarios",
                     body = "Use hide instead of delete to preserve context.",
                     lastActivityAt = now.minusSeconds(60 * 60 * 72),
                     ownerId = user.id,
+                    isMarkdown = true,
                 ),
             ),
         )

@@ -32,8 +32,8 @@ export type EntryCardActions = {
   onEditStart: () => void
   onEditChange: (value: string) => void
   onEditCancel: () => void
-  onEditSave: (value?: string) => void
-  onToggleMute: (nextBody: string) => void
+  onEditSave: (value: string, isMarkdown: boolean) => void
+  onToggleMute: (nextBody: string, isMarkdown: boolean) => void
   onHide: () => void
   onDragStart?: (entryId: string) => void
   onDragEnd?: () => void
@@ -54,6 +54,7 @@ export type ThreadEditorLabels = {
   saving?: string
   cancel: string
   complete: string
+  markdown: string
   categorySearchPlaceholder: string
   addCategory: string
   cancelCategory: string
@@ -63,9 +64,10 @@ export type ThreadEditorLabels = {
 export type ThreadEditorProps = {
   value: string
   onChange: (value: string) => void
-  onSave: (value: string) => void
+  onSave: (value: string, isMarkdown: boolean) => void
   onCancel: () => void
-  onComplete: (value: string) => void
+  onComplete: (value: string, isMarkdown: boolean) => void
+  initialIsMarkdown: boolean
   categories: CategorySummary[]
   selectedCategories: string[]
   editingCategoryInput: string
@@ -122,15 +124,15 @@ export type ThreadCardActions = {
   onEditingCategoryInputChange: (value: string) => void
   onEditingCategoryCancel: () => void
   onEditingCategorySubmit: (value: string) => void
-  onSaveEdit: (value: string) => void
+  onSaveEdit: (value: string, isMarkdown: boolean) => void
   onTogglePin: () => void
-  onToggleMute: (value: string) => void
+  onToggleMute: (value: string, isMarkdown: boolean) => void
   onHide: () => void
   onEntryEditStart: (entryId: string, body: string) => void
   onEntryEditChange: (value: string) => void
   onEntryEditCancel: () => void
-  onEntryEditSave: (entryId: string, value?: string) => void
-  onEntryToggleMute: (entryId: string, body: string) => void
+  onEntryEditSave: (entryId: string, value: string, isMarkdown: boolean) => void
+  onEntryToggleMute: (entryId: string, body: string, isMarkdown: boolean) => void
   onEntryHide: (entryId: string) => void
   onEntryMoveTo: (
     entryId: string,

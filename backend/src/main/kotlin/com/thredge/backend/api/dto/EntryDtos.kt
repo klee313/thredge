@@ -9,6 +9,7 @@ import java.time.Instant
 data class EntryUpdateRequest(
     @field:NotBlankIfPresent(message = ValidationMessages.BODY_REQUIRED)
     val body: String? = null,
+    val isMarkdown: Boolean? = null,
 )
 
 enum class EntryMoveDirection {
@@ -38,6 +39,7 @@ data class EntryMoveTargetRequest(
 data class EntryDetail(
     val id: String,
     val body: String,
+    val isMarkdown: Boolean,
     val parentEntryId: String?,
     val orderIndex: Long,
     val createdAt: Instant,

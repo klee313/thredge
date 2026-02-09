@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from 'date-fns'
-import { memo, type Ref } from 'react'
+import { memo, type ReactElement, type Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EntryDetail } from '../../lib/api'
 import { ThreadCardHeader } from './ThreadCardHeader'
@@ -18,6 +18,7 @@ export type ThreadCardViewProps = {
   isMuted: boolean
   bodySpacingClass: string
   hasHtmlLineBreaks: boolean
+  isMarkdown: boolean
   orderedEntries: EntryDetail[]
   entryDepth: Map<string, number>
   entriesIsError: boolean
@@ -27,7 +28,7 @@ export type ThreadCardViewProps = {
   handleDragEnd: () => void
   renderDropIndex: number | null
   dropDepth: number
-  renderDropIndicator: (depth: number, key: string) => JSX.Element
+  renderDropIndicator: (depth: number, key: string) => ReactElement
 }
 
 export const ThreadCardView = memo(function ThreadCardView({
@@ -40,6 +41,7 @@ export const ThreadCardView = memo(function ThreadCardView({
   isMuted,
   bodySpacingClass,
   hasHtmlLineBreaks,
+  isMarkdown,
   orderedEntries,
   entryDepth,
   entriesIsError,
@@ -142,6 +144,7 @@ export const ThreadCardView = memo(function ThreadCardView({
         isMuted={isMuted}
         bodySpacingClass={bodySpacingClass}
         hasHtmlLineBreaks={hasHtmlLineBreaks}
+        isMarkdown={isMarkdown}
         normalizedSearchQuery={normalizedSearchQuery}
         linkTo={linkTo}
         categories={categories}
@@ -162,6 +165,7 @@ export const ThreadCardView = memo(function ThreadCardView({
           save: t('common.save'),
           cancel: t('common.cancel'),
           complete: t('common.complete'),
+          markdown: t('common.markdownEnabled'),
           categorySearchPlaceholder: t('home.categorySearchPlaceholder'),
           addCategory: t('home.addCategory'),
           cancelCategory: t('common.cancel'),
@@ -198,8 +202,9 @@ export const ThreadCardView = memo(function ThreadCardView({
           onEditStart: (entry) => onEntryEditStart(entry.id, entry.body),
           onEditChange: onEntryEditChange,
           onEditCancel: onEntryEditCancel,
-          onEditSave: (entry, val) => onEntryEditSave(entry.id, val),
-          onToggleMute: (entry, nextBody) => onEntryToggleMute(entry.id, nextBody),
+          onEditSave: (entry, val, isMarkdown) => onEntryEditSave(entry.id, val, isMarkdown),
+          onToggleMute: (entry, nextBody, isMarkdown) =>
+            onEntryToggleMute(entry.id, nextBody, isMarkdown),
           onHide: (entry) => onEntryHide(entry.id),
           onDragStart: handleDragStart,
           onDragEnd: handleDragEnd,

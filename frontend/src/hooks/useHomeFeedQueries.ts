@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import {
   fetchCategories,
   fetchCategoryCounts,
+  fetchTodos,
   fetchThreadFeedPage,
   searchThreadsPage,
   UNCATEGORIZED_TOKEN,
@@ -126,6 +127,12 @@ export const useHomeFeedQueries = ({
     return new Map(counts.map((item) => [item.id, item.count]))
   }, [categoryCountsQuery.data])
 
+  const todosQuery = useQuery({
+    queryKey: queryKeys.todos.list,
+    queryFn: ({ signal }) => fetchTodos({ signal }),
+    meta: { suppressGlobalError: true },
+  })
+
   return {
     categoriesQuery,
     categoryCountsQuery,
@@ -139,5 +146,6 @@ export const useHomeFeedQueries = ({
     categoryCountsById,
     validCategoryNames,
     normalizedSelectedCategories,
+    todosQuery,
   }
 }

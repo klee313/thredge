@@ -11,6 +11,7 @@ data class ThreadSummary(
         val lastActivityAt: Instant,
         val categories: List<CategorySummary>,
         val pinned: Boolean,
+        val isMarkdown: Boolean,
 )
 
 data class ThreadDetail(
@@ -21,6 +22,7 @@ data class ThreadDetail(
         val lastActivityAt: Instant,
         val categories: List<CategorySummary>,
         val pinned: Boolean,
+        val isMarkdown: Boolean,
         val entries: List<EntryDetail>,
 )
 
@@ -33,6 +35,7 @@ data class ThreadFeedItem(
         val categories: List<CategorySummary>,
         val pinned: Boolean,
         val entryCount: Int,
+        val isMarkdown: Boolean,
 )
 
 data class ThreadCreateRequest(
@@ -45,5 +48,6 @@ data class ThreadUpdateRequest(
         val title: String? = null,
         @field:NotBlankIfPresent(message = ValidationMessages.BODY_REQUIRED)
         val body: String? = null,
+        val isMarkdown: Boolean? = null,
         val categoryNames: List<String>? = null,
 )

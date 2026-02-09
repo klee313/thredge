@@ -57,7 +57,7 @@ export const useThreadDetailState = (threadId?: string, storageScope?: string) =
   const { editingEntryId, editingEntryBody } = entryEditor.state
 
   const syncThread = (thread: ThreadLike) => {
-    if (isEditingThread) {
+    if (isEditingThread && editingThreadBody.trim()) {
       return
     }
     threadEditor.actions.syncThread(thread)

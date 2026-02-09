@@ -45,6 +45,8 @@ class ThreadEntity(
     @Column(name = "owner_id", columnDefinition = "uuid", nullable = false)
     var ownerId: UUID? = null,
 
+    @Column(name = "is_markdown", nullable = false)
+    var isMarkdown: Boolean = false,
 
     @Column(nullable = false)
     var isHidden: Boolean = false,

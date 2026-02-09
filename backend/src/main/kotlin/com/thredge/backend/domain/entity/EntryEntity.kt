@@ -48,6 +48,7 @@ class EntryEntity(
         var thread: ThreadEntity? = null,
         @Column(columnDefinition = "uuid") var parentEntryId: UUID? = null,
         @Column(columnDefinition = "text", nullable = false) var body: String = "",
+        @Column(name = "is_markdown", nullable = false) var isMarkdown: Boolean = false,
         @Column(nullable = false) var isHidden: Boolean = false,
         @Column(name = "order_index", nullable = false) var orderIndex: Long = 0,
         @Column(nullable = false) var depth: Int = 1,

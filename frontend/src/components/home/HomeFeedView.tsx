@@ -7,6 +7,8 @@ import { useHeaderSlot } from '../layout/HeaderSlotContext'
 import { HomeFeedComposer } from './HomeFeedComposer'
 import { HomeFeedThreadList } from './HomeFeedThreadList'
 import { SearchForm } from './SearchForm'
+import { TodoThreadWidget } from './TodoThreadWidget'
+import { useSettingsStore } from '../../store/settingsStore'
 
 const RECENT_CATEGORIES_STORAGE_KEY = 'thredge:recent-categories'
 const RECENT_CATEGORIES_LIMIT = 5
@@ -64,6 +66,7 @@ type HomeFeedViewProps = {
 
 export function HomeFeedView({ controller, displayName, username }: HomeFeedViewProps) {
   const { t } = useTranslation()
+  const showTodoPanel = useSettingsStore((state) => state.showTodoPanel)
   const { categoryPath } = useParams<{ categoryPath?: string }>()
   const { setHeaderSlot } = useHeaderSlot()
   const {
@@ -81,6 +84,7 @@ export function HomeFeedView({ controller, displayName, username }: HomeFeedView
     categoriesQuery,
     categoryCountsQuery,
     categoryCountsById,
+    todosQuery,
   } = queries
   const {
     threadActions,
@@ -267,6 +271,17 @@ export function HomeFeedView({ controller, displayName, username }: HomeFeedView
         isThreadSubmitting={createThreadMutation.isPending}
         categorySelector={newThreadCategorySelector}
       />
+      {showTodoPanel && (todosQuery.isLoading || todosQuery.isError || todosQuery.isSuccess) && (
+        <div className="sm:pointer-events-none sm:fixed sm:left-4 sm:top-24 sm:z-20 sm:w-[19rem]">
+          <div className="sm:pointer-events-auto">
+            <TodoThreadWidget
+              todos={todosQuery.data ?? []}
+              isLoading={todosQuery.isLoading}
+              isError={todosQuery.isError}
+            />
+          </div>
+        </div>
+      )}
       <HomeFeedThreadList controller={controller} />
     </div>
   )

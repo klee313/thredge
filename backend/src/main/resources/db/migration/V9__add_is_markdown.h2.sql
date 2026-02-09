@@ -1,0 +1,5 @@
+ALTER TABLE threads
+    ADD COLUMN IF NOT EXISTS is_markdown boolean DEFAULT FALSE NOT NULL;
+
+ALTER TABLE entries
+    ADD COLUMN IF NOT EXISTS is_markdown boolean DEFAULT FALSE NOT NULL;

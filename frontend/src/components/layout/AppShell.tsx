@@ -30,6 +30,16 @@ type GlobalErrorEntry = {
   at: number
 }
 
+const normalizeLanguage = (value?: string | null): SupportedLanguage | null => {
+  if (!value) {
+    return null
+  }
+  const base = value.toLowerCase().split('-')[0]
+  return supportedLanguages.includes(base as SupportedLanguage)
+    ? (base as SupportedLanguage)
+    : null
+}
+
 export function AppShell({
   children,
   isAdmin,
@@ -72,17 +82,17 @@ export function AppShell({
   }, [themePreset, themeCustomColor])
 
   useEffect(() => {
-    const current = i18n.resolvedLanguage ?? i18n.language
-    if (!current || !supportedLanguages.includes(current as SupportedLanguage)) {
+    const current = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)
+    if (!current) {
       return
     }
     if (current !== uiLanguage) {
-      setPartial({ uiLanguage: current as SupportedLanguage })
+      setPartial({ uiLanguage: current })
     }
   }, [setPartial, uiLanguage])
 
   useEffect(() => {
-    const current = i18n.resolvedLanguage ?? i18n.language
+    const current = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)
     if (!uiLanguage || current === uiLanguage) {
       return
     }

@@ -6,12 +6,17 @@ import xIcon from '../../assets/x.svg?raw'
 import searchIcon from '../../assets/search.svg?raw'
 import { SearchDropdown, type SearchDropdownProps } from './SearchDropdown'
 
+type SearchDropdownConfig = Omit<
+  SearchDropdownProps,
+  'query' | 'onQueryChange' | 'onSearch' | 'onRequestClose'
+>
+
 type SearchFormProps = {
   value: string
   onChange: (value: string) => void
   onSearch: (query: string) => void
   onClear: () => void
-  dropdown?: SearchDropdownProps
+  dropdown?: SearchDropdownConfig
 }
 
 export function SearchForm({
@@ -24,6 +29,7 @@ export function SearchForm({
   const { t } = useTranslation()
   const isComposingRef = useRef(false)
   const dropdownContainerRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const [draftValue, setDraftValue] = useState(value)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
@@ -46,6 +52,7 @@ export function SearchForm({
           return
         }
         onSearch(trimmedQuery)
+        inputRef.current?.blur()
         if (dropdownEnabled) {
           setIsDropdownOpen(false)
         }
@@ -80,12 +87,15 @@ export function SearchForm({
         </label>
         <input
           id="thread-search-input"
+          ref={inputRef}
+          type="text"
           className={`${uiTokens.input.base} ${
             'px-3 py-1.5 text-xs'
           } pr-16 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:shadow-[0_0_0_3px_rgba(15,23,42,0.08)]`}
           placeholder={t('home.searchPlaceholder')}
           aria-label={t('home.searchPlaceholder')}
           autoComplete="off"
+          enterKeyHint="search"
           value={draftValue}
           onChange={(event) => {
             const nextValue = event.target.value
@@ -132,6 +142,7 @@ export function SearchForm({
               return
             }
             onSearch(trimmedQuery)
+            inputRef.current?.blur()
             if (dropdownEnabled) {
               setIsDropdownOpen(false)
             }
@@ -149,6 +160,7 @@ export function SearchForm({
             }}
             onSearch={(query) => {
               onSearch(query)
+              inputRef.current?.blur()
               setIsDropdownOpen(false)
             }}
             onRequestClose={() => setIsDropdownOpen(false)}

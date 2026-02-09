@@ -22,8 +22,8 @@ type EntryListActions = {
   onEditStart: (entry: EntryDetail) => void
   onEditChange: (value: string) => void
   onEditCancel: () => void
-  onEditSave: (entry: EntryDetail, value?: string) => void
-  onToggleMute: (entry: EntryDetail, nextBody: string) => void
+  onEditSave: (entry: EntryDetail, value: string, isMarkdown: boolean) => void
+  onToggleMute: (entry: EntryDetail, nextBody: string, isMarkdown: boolean) => void
   onHide: (entry: EntryDetail) => void
   onDragStart?: (entryId: string) => void
   onDragEnd?: () => void
@@ -91,8 +91,8 @@ export function EntryList({
           onEditStart: () => actions.onEditStart(entry),
           onEditChange: actions.onEditChange,
           onEditCancel: actions.onEditCancel,
-          onEditSave: (val) => actions.onEditSave(entry, val),
-          onToggleMute: (nextBody) => actions.onToggleMute(entry, nextBody),
+          onEditSave: (val, isMarkdown) => actions.onEditSave(entry, val, isMarkdown),
+          onToggleMute: (nextBody, isMarkdown) => actions.onToggleMute(entry, nextBody, isMarkdown),
           onHide: () => actions.onHide(entry),
           onDragStart: actions.onDragStart,
           onDragEnd: actions.onDragEnd,

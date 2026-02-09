@@ -27,3 +27,14 @@
 - Backend health(API, Nginx): `http://localhost:8082/api/health`
 - Backend health(Actuator): `http://localhost:28080/actuator/health`
 - Swagger UI: `http://localhost:28080/swagger-ui/index.html`
+
+## Google OAuth 로컬 설정
+- `.env`에 아래 값을 추가한다.
+  - `APP_AUTH_OAUTH_ENABLED=true`
+  - `GOOGLE_CLIENT_ID=<발급값>`
+  - `GOOGLE_CLIENT_SECRET=<발급값>`
+  - `GOOGLE_REDIRECT_URI=http://localhost:8082/login/oauth2/code/google`
+  - `APP_AUTH_OAUTH_SUCCESS_REDIRECT_URI=http://localhost:8082/`
+  - `APP_AUTH_OAUTH_FAILURE_REDIRECT_URI=http://localhost:8082/login?oauth=failed`
+  - `VITE_GOOGLE_OAUTH_ENABLED=true`
+- 로그인 화면의 `Google로 로그인` 버튼은 `/oauth2/authorization/google`으로 이동하며, Nginx가 백엔드로 프록시한다.

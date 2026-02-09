@@ -1,15 +1,19 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import {
   fetchHiddenEntriesPage,
   fetchHiddenThreadsPage,
+  fetchTodos,
+  purgeEntry,
+  purgeThread,
   restoreEntry,
   restoreThread,
   searchHiddenEntriesPage,
   searchHiddenThreadsPage,
+  updateTodo,
 } from '../lib/api'
 import { highlightMatches } from '../lib/highlightMatches'
 import { useArchivedSearch } from '../hooks/useArchivedSearch'
@@ -37,6 +41,19 @@ export function ArchivePage() {
     search: (query, page, options) => searchHiddenEntriesPage(query, page, undefined, options),
   })
 
+  const todosQuery = useQuery({
+    queryKey: queryKeys.todos.list,
+    queryFn: ({ signal }) => fetchTodos({ signal }),
+    meta: { suppressGlobalError: true },
+  })
+
+  const completedTodos = useMemo(() => {
+    const todos = todosQuery.data ?? []
+    return [...todos]
+      .filter((todo) => todo.done)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  }, [todosQuery.data])
+
   const restoreThreadMutation = useMutation({
     mutationFn: (id: string) => restoreThread(id),
     onSuccess: async () => {
@@ -53,6 +70,33 @@ export function ArchivePage() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.entries.hidden })
       await queryClient.invalidateQueries({ queryKey: queryKeys.entries.hiddenSearchRoot })
       setToast(t('archive.restoredEntry'))
+    },
+  })
+
+  const purgeThreadMutation = useMutation({
+    mutationFn: (id: string) => purgeThread(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.threads.feed })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.threads.hidden })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.threads.hiddenSearchRoot })
+      setToast(t('archive.purgedThread'))
+    },
+  })
+
+  const purgeEntryMutation = useMutation({
+    mutationFn: (id: string) => purgeEntry(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.entries.hidden })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.entries.hiddenSearchRoot })
+      setToast(t('archive.purgedEntry'))
+    },
+  })
+
+  const restoreTodoMutation = useMutation({
+    mutationFn: (id: string) => updateTodo(id, { done: false }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.todos.list })
+      setToast(t('archive.restoredTodo'))
     },
   })
 
@@ -73,6 +117,54 @@ export function ArchivePage() {
           {toast}
         </div>
       )}
+
+      <div className={uiTokens.card.surface}>
+        <div className="text-sm font-semibold">{t('archive.completedTodos')}</div>
+        <div className="mt-2 space-y-2 sm:mt-3">
+          {todosQuery.isLoading && (
+            <div className="text-sm text-[var(--theme-muted)]">
+              {t('archive.loading')}
+            </div>
+          )}
+          {todosQuery.isError && <ErrorNotice message={t('archive.error')} />}
+          {completedTodos.map((todo) => (
+            <div
+              key={todo.id}
+              className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-1.5 py-1 sm:px-3 sm:py-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-[var(--theme-ink)]">
+                  {todo.task}
+                </div>
+                <button
+                  className="text-xs text-[var(--theme-primary)] underline"
+                  type="button"
+                  onClick={() => {
+                    if (!window.confirm(t('archive.restoreConfirmTodo'))) {
+                      return
+                    }
+                    restoreTodoMutation.mutate(todo.id)
+                  }}
+                  disabled={restoreTodoMutation.isPending}
+                >
+                  {t('archive.restore')}
+                </button>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-xs text-[var(--theme-muted)]">
+                <span>{todo.blocker || t('todo.emptyValue')}</span>
+                <Tooltip content={new Date(todo.updatedAt).toLocaleString()}>
+                  {formatDistanceToNow(new Date(todo.updatedAt), { addSuffix: true })}
+                </Tooltip>
+              </div>
+            </div>
+          ))}
+          {!todosQuery.isLoading && completedTodos.length === 0 && (
+            <div className="text-sm text-[var(--theme-muted)]">
+              {t('archive.emptyTodos')}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className={uiTokens.card.surface}>
         <div className="text-sm font-semibold">{t('archive.hiddenThreads')}</div>
@@ -106,19 +198,34 @@ export function ArchivePage() {
                 >
                   {highlightMatches(thread.title, threads.debouncedFilter, { disableLinks: true })}
                 </Link>
-                <button
-                  className="text-xs text-[var(--theme-primary)] underline"
-                  type="button"
-                  onClick={() => {
-                    if (!window.confirm(t('archive.restoreConfirmThread'))) {
-                      return
-                    }
-                    restoreThreadMutation.mutate(thread.id)
-                  }}
-                  disabled={restoreThreadMutation.isPending}
-                >
-                  {t('archive.restore')}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="text-xs text-[var(--theme-primary)] underline"
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm(t('archive.restoreConfirmThread'))) {
+                        return
+                      }
+                      restoreThreadMutation.mutate(thread.id)
+                    }}
+                    disabled={restoreThreadMutation.isPending}
+                  >
+                    {t('archive.restore')}
+                  </button>
+                  <button
+                    className="text-xs text-rose-600 underline"
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm(t('archive.purgeConfirmThread'))) {
+                        return
+                      }
+                      purgeThreadMutation.mutate(thread.id)
+                    }}
+                    disabled={purgeThreadMutation.isPending}
+                  >
+                    {t('archive.purge')}
+                  </button>
+                </div>
               </div>
               <div className="text-xs text-[var(--theme-muted)]">
                 <Tooltip content={new Date(thread.lastActivityAt).toLocaleString()}>
@@ -203,6 +310,19 @@ export function ArchivePage() {
                     disabled={restoreEntryMutation.isPending}
                   >
                     {t('archive.restore')}
+                  </button>
+                  <button
+                    className="text-xs text-rose-600 underline"
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm(t('archive.purgeConfirmEntry'))) {
+                        return
+                      }
+                      purgeEntryMutation.mutate(entry.id)
+                    }}
+                    disabled={purgeEntryMutation.isPending}
+                  >
+                    {t('archive.purge')}
                   </button>
                 </div>
               </div>

@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react'
-import { ComposerTextarea } from '../common/ComposerTextarea'
+import { useCallback, useRef, useState } from 'react'
+import { MilkdownEditor } from '../common/MilkdownEditor'
 import { uiTokens } from '../../lib/uiTokens'
 import { useDebouncedTextInput } from '../../hooks/useDebouncedTextInput'
 import { useComposerFocus } from '../../hooks/useComposerFocus'
@@ -34,17 +34,18 @@ export function EntryComposer({
   activeFocusId,
   onFocusHandled,
 }: EntryComposerProps) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const editorContainerRef = useRef<HTMLDivElement | null>(null)
   const { localValue, setLocalValue, reset } = useDebouncedTextInput({
     value: initialValue,
     onChange,
     delayMs: 500,
     isLocked: isSubmitting,
   })
+  const [editorSeed, setEditorSeed] = useState(0)
 
   const focusElement = useCallback(() => {
-    const element = textareaRef.current
-    element?.focus({ preventScroll: true })
+    const element = editorContainerRef.current?.querySelector<HTMLElement>('.editor')
+    element?.focus()
     element?.scrollIntoView({ block: 'center', inline: 'nearest' })
   }, [])
 
@@ -66,16 +67,19 @@ export function EntryComposer({
         }
         onSubmit(localValue)
         reset('')
+        setEditorSeed((prev) => prev + 1)
       }}
     >
-      <ComposerTextarea
+      <MilkdownEditor
         minHeightClass="min-h-[72px]"
         placeholder={placeholder}
-        ariaLabel={placeholder}
-        value={localValue}
+        initialValue={localValue}
+        valueForPlaceholder={localValue}
         onChange={setLocalValue}
-        inputRef={(element) => {
-          textareaRef.current = element
+        isDisabled={isSubmitting}
+        resetKey={editorSeed}
+        containerRef={(element) => {
+          editorContainerRef.current = element
         }}
       />
       <button

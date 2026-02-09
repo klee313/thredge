@@ -70,6 +70,7 @@ export const updateEntryInFeed = (
   queryClient: QueryClient,
   entryId: string,
   body: string,
+  isMarkdown?: boolean,
   options?: FeedUpdateOptions,
 ) => {
   const updater = (data: ThreadFeedData | undefined) => {
@@ -81,7 +82,13 @@ export const updateEntryInFeed = (
         return {
           ...thread,
           entries: thread.entries.map((entry) =>
-            entry.id === entryId ? { ...entry, body } : entry,
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  body,
+                  isMarkdown: isMarkdown ?? entry.isMarkdown,
+                }
+              : entry,
           ),
         }
       }),
@@ -146,13 +153,20 @@ export const updateEntryInThreadDetail = (
   threadId: string,
   entryId: string,
   body: string,
+  isMarkdown?: boolean,
 ) => {
   queryClient.setQueryData(queryKeys.thread.detail(threadId), (data: ThreadDetail | undefined) => {
     if (!data) {
       return data
     }
     const newEntries = data.entries.map((entry) =>
-      entry.id === entryId ? { ...entry, body } : entry,
+      entry.id === entryId
+        ? {
+            ...entry,
+            body,
+            isMarkdown: isMarkdown ?? entry.isMarkdown,
+          }
+        : entry,
     )
     return {
       ...data,
@@ -220,10 +234,19 @@ export const updateEntryInEntryList = (
   threadId: string,
   entryId: string,
   body: string,
+  isMarkdown?: boolean,
 ) => {
   queryClient.setQueryData<EntryDetail[]>(queryKeys.threads.entries(threadId), (old) => {
     if (!old) return old
-    return old.map((entry) => (entry.id === entryId ? { ...entry, body } : entry))
+    return old.map((entry) =>
+      entry.id === entryId
+        ? {
+            ...entry,
+            body,
+            isMarkdown: isMarkdown ?? entry.isMarkdown,
+          }
+        : entry,
+    )
   })
 }
 

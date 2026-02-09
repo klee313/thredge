@@ -50,6 +50,7 @@ class EntryService(
         if (request.body != null) {
             entry.body = request.body.trim()
         }
+        request.isMarkdown?.let { entry.isMarkdown = it }
         val saved = entryRepository.save(entry)
         bumpThreadActivity(saved.thread?.id)
         return threadMapper.toEntryDetail(saved)
@@ -72,6 +73,23 @@ class EntryService(
         val saved = entryRepository.save(entry)
         bumpThreadActivity(saved.thread?.id)
         return threadMapper.toEntryDetail(saved)
+    }
+
+    @Transactional
+    fun purgeEntry(ownerUsername: String, id: String) {
+        val ownerId = userSupport.requireUserId(ownerUsername)
+        val entry = findEntry(id, ownerId, includeHidden = true)
+        if (!entry.isHidden) {
+            throw BadRequestException("Entry must be hidden before permanent deletion.")
+        }
+        val entryId = entry.id ?: throw NotFoundException("Entry not found.")
+        val hasReplies = entryRepository.existsByParentEntryIdAndThreadOwnerId(entryId, ownerId)
+        if (hasReplies) {
+            throw BadRequestException("Cannot permanently delete an entry that has replies.")
+        }
+        val threadId = entry.thread?.id
+        entryRepository.delete(entry)
+        bumpThreadActivity(threadId)
     }
 
     @Transactional

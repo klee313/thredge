@@ -24,6 +24,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'before',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),
@@ -38,12 +39,13 @@ describe('threadCache', () => {
       categories: [],
       pinned: false,
       entryCount: 1,
+      isMarkdown: false,
       entries: [entry],
     }
     queryClient.setQueryData(queryKeys.threads.feed, buildFeedData([thread]))
     queryClient.setQueryData(queryKeys.threads.searchRoot, buildFeedData([thread]))
 
-    updateEntryInFeed(queryClient, 'entry-1', 'after')
+    updateEntryInFeed(queryClient, 'entry-1', 'after', true)
 
     const feedData = queryClient.getQueryData<ReturnType<typeof buildFeedData>>(
       queryKeys.threads.feed,
@@ -51,12 +53,12 @@ describe('threadCache', () => {
     const searchData = queryClient.getQueryData<ReturnType<typeof buildFeedData>>(
       queryKeys.threads.searchRoot,
     )
-    expect((feedData?.pages[0].items[0] as { entries: EntryDetail[] }).entries[0].body).toBe(
-      'after',
-    )
-    expect((searchData?.pages[0].items[0] as { entries: EntryDetail[] }).entries[0].body).toBe(
-      'after',
-    )
+    const feedEntry = (feedData?.pages[0].items[0] as unknown as { entries: EntryDetail[] }).entries[0]
+    const searchEntry = (searchData?.pages[0].items[0] as unknown as { entries: EntryDetail[] }).entries[0]
+    expect(feedEntry.body).toBe('after')
+    expect(searchEntry.body).toBe('after')
+    expect(feedEntry.isMarkdown).toBe(true)
+    expect(searchEntry.isMarkdown).toBe(true)
   })
 
   it('removeThreadFromFeed removes threads from feed/search caches', () => {
@@ -70,6 +72,7 @@ describe('threadCache', () => {
       categories: [],
       pinned: false,
       entryCount: 0,
+      isMarkdown: false,
     }
     queryClient.setQueryData(queryKeys.threads.feed, buildFeedData([thread]))
     queryClient.setQueryData(queryKeys.threads.searchRoot, buildFeedData([thread]))
@@ -91,6 +94,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'before',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),
@@ -105,6 +109,7 @@ describe('threadCache', () => {
       categories: [],
       pinned: false,
       entryCount: 1,
+      isMarkdown: false,
       entries: [entry],
     }
     queryClient.setQueryData(queryKeys.threads.feed, buildFeedData([thread]))
@@ -118,8 +123,8 @@ describe('threadCache', () => {
     const searchData = queryClient.getQueryData<ReturnType<typeof buildFeedData>>(
       queryKeys.threads.searchRoot,
     )
-    expect((feedData?.pages[0].items[0] as { entries: EntryDetail[] }).entries.length).toBe(0)
-    expect((searchData?.pages[0].items[0] as { entries: EntryDetail[] }).entries.length).toBe(0)
+    expect((feedData?.pages[0].items[0] as unknown as { entries: EntryDetail[] }).entries.length).toBe(0)
+    expect((searchData?.pages[0].items[0] as unknown as { entries: EntryDetail[] }).entries.length).toBe(0)
   })
 
   it('updateEntryPositionInFeed updates parent/order in feed/search caches', () => {
@@ -127,6 +132,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'body',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),
@@ -141,6 +147,7 @@ describe('threadCache', () => {
       categories: [],
       pinned: false,
       entryCount: 1,
+      isMarkdown: false,
       entries: [entry],
     }
     queryClient.setQueryData(queryKeys.threads.feed, buildFeedData([thread]))
@@ -158,8 +165,8 @@ describe('threadCache', () => {
     const searchData = queryClient.getQueryData<ReturnType<typeof buildFeedData>>(
       queryKeys.threads.searchRoot,
     )
-    const updatedFeedEntry = (feedData?.pages[0].items[0] as { entries: EntryDetail[] }).entries[0]
-    const updatedSearchEntry = (searchData?.pages[0].items[0] as { entries: EntryDetail[] }).entries[0]
+    const updatedFeedEntry = (feedData?.pages[0].items[0] as unknown as { entries: EntryDetail[] }).entries[0]
+    const updatedSearchEntry = (searchData?.pages[0].items[0] as unknown as { entries: EntryDetail[] }).entries[0]
     expect(updatedFeedEntry.parentEntryId).toBe('entry-2')
     expect(updatedFeedEntry.orderIndex).toBe(3)
     expect(updatedSearchEntry.parentEntryId).toBe('entry-2')
@@ -171,6 +178,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'before',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),
@@ -184,15 +192,17 @@ describe('threadCache', () => {
       lastActivityAt: new Date().toISOString(),
       categories: [],
       pinned: false,
+      isMarkdown: false,
       entries: [entry],
     })
 
-    updateEntryInThreadDetail(queryClient, 'thread-1', 'entry-1', 'after')
+    updateEntryInThreadDetail(queryClient, 'thread-1', 'entry-1', 'after', true)
 
     const detail = queryClient.getQueryData<{
       entries: EntryDetail[]
     }>(queryKeys.thread.detail('thread-1'))
     expect(detail?.entries[0].body).toBe('after')
+    expect(detail?.entries[0].isMarkdown).toBe(true)
   })
 
   it('removeEntryFromThreadDetail removes entry from thread detail cache', () => {
@@ -200,6 +210,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'before',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),
@@ -213,6 +224,7 @@ describe('threadCache', () => {
       lastActivityAt: new Date().toISOString(),
       categories: [],
       pinned: false,
+      isMarkdown: false,
       entries: [entry],
     })
 
@@ -229,6 +241,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'before',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),
@@ -236,12 +249,13 @@ describe('threadCache', () => {
     }
     queryClient.setQueryData(queryKeys.threads.entries('thread-1'), [entry])
 
-    updateEntryInEntryList(queryClient, 'thread-1', 'entry-1', 'after')
+    updateEntryInEntryList(queryClient, 'thread-1', 'entry-1', 'after', true)
 
     const entries = queryClient.getQueryData<EntryDetail[]>(
       queryKeys.threads.entries('thread-1'),
     )
     expect(entries?.[0].body).toBe('after')
+    expect(entries?.[0].isMarkdown).toBe(true)
   })
 
   it('updateEntryPositionInEntryList updates entry position in entries list cache', () => {
@@ -249,6 +263,7 @@ describe('threadCache', () => {
     const entry: EntryDetail = {
       id: 'entry-1',
       body: 'body',
+      isMarkdown: false,
       parentEntryId: null,
       orderIndex: 0,
       createdAt: new Date().toISOString(),

@@ -16,6 +16,7 @@ export function ComponentLabPage() {
   const entry: EntryDetail = {
     id: 'entry-preview',
     body: entryBody,
+    isMarkdown: false,
     parentEntryId: null,
     orderIndex: 1000,
     createdAt: new Date().toISOString(),
@@ -61,8 +62,8 @@ export function ComponentLabPage() {
             onEditStart: () => setIsEditingEntry(true),
             onEditChange: setEntryBody,
             onEditCancel: () => setIsEditingEntry(false),
-            onEditSave: () => setIsEditingEntry(false),
-            onToggleMute: setEntryBody,
+            onEditSave: (_value, _isMarkdown) => setIsEditingEntry(false),
+            onToggleMute: (nextBody, _isMarkdown) => setEntryBody(nextBody),
             onHide: () => {},
             onDragStart: () => {},
             onDragEnd: () => {},
@@ -79,9 +80,10 @@ export function ComponentLabPage() {
         <ThreadEditor
           value={editingThreadBody}
           onChange={setEditingThreadBody}
-          onSave={() => {}}
+          onSave={(_value, _isMarkdown) => {}}
           onCancel={() => {}}
-          onComplete={() => {}}
+          onComplete={(_value, _isMarkdown) => {}}
+          initialIsMarkdown={true}
           categories={categories}
           selectedCategories={selectedCategories}
           editingCategoryInput={categoryInput}
@@ -108,6 +110,7 @@ export function ComponentLabPage() {
             save: 'Save',
             cancel: 'Cancel',
             complete: 'Complete',
+            markdown: 'Enable Markdown',
             categorySearchPlaceholder: 'Find category',
             addCategory: 'Add',
             cancelCategory: 'Cancel',

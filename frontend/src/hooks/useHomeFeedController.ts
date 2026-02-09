@@ -59,6 +59,7 @@ export const useHomeFeedController = (username: string, locale: string) => {
     threadsQuery,
     searchThreadsQuery,
     normalizedSelectedCategories,
+    todosQuery,
   } = useHomeFeedQueries({
     normalizedSearchQuery,
     selectedCategories,
@@ -191,6 +192,7 @@ export const useHomeFeedController = (username: string, locale: string) => {
       selectedDate,
       selectedDateLabel,
       dateInputValue,
+      todosQuery,
     }),
     [
       activeThreadsQuery,
@@ -202,6 +204,7 @@ export const useHomeFeedController = (username: string, locale: string) => {
       normalizedSelectedCategories,
       selectedDate,
       selectedDateLabel,
+      todosQuery,
     ],
   )
 

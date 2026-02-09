@@ -16,6 +16,8 @@ export class ApiError extends Error {
 
 export type BackendHealth = { status: string }
 export type AuthUser = { username: string; name: string; role: 'USER' | 'ADMIN' }
+export type AiSettings = { provider: string | null; hasApiKey: boolean }
+export type BlockerRecommendationResponse = { content: string }
 export type AdminUser = {
   id: string
   username: string
@@ -30,10 +32,12 @@ export type ThreadSummary = {
   lastActivityAt: string
   categories: CategorySummary[]
   pinned: boolean
+  isMarkdown: boolean
 }
 export type EntryDetail = {
   id: string
   body: string
+  isMarkdown: boolean
   parentEntryId: string | null
   orderIndex: number
   createdAt: string
@@ -63,6 +67,7 @@ export type ThreadDetail = {
   lastActivityAt: string
   categories: CategorySummary[]
   pinned: boolean
+  isMarkdown: boolean
   entries: EntryDetail[]
 }
 export type ThreadFeedItem = {
@@ -74,12 +79,26 @@ export type ThreadFeedItem = {
   categories: CategorySummary[]
   pinned: boolean
   entryCount: number
+  isMarkdown: boolean
 }
 export type PageResponse<T> = {
   items: T[]
   page: number
   size: number
   hasNext: boolean
+}
+
+export type TodoPriority = 'BLUE' | 'GREEN' | 'YELLOW' | 'RED'
+export type TodoItem = {
+  id: string
+  task: string
+  deadline: string
+  priority: TodoPriority
+  blocker: string
+  solution: string
+  done: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export const UNCATEGORIZED_TOKEN = '__uncategorized__'
@@ -97,6 +116,16 @@ const buildUrl = (path: string) => {
   }
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   return `${base}${normalizedPath}`
+}
+
+const buildAuthUrl = (path: string) => {
+  if (!API_BASE_URL) {
+    return path
+  }
+  const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL
+  const authBase = base.endsWith('/api') ? base.slice(0, -4) : base
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${authBase}${normalizedPath}`
 }
 
 type RequestOptions = {
@@ -228,6 +257,8 @@ export async function fetchMe(options?: RequestOptions): Promise<AuthUser | null
   }
 }
 
+export const googleOAuthStartUrl = () => buildAuthUrl('/oauth2/authorization/google')
+
 export async function login(username: string, password: string): Promise<AuthUser> {
   return requestJson('/api/auth/login', {
     method: 'POST',
@@ -292,6 +323,43 @@ export async function updateDisplayName(name: string): Promise<AuthUser> {
   }, 'Display name update failed')
 }
 
+export async function fetchAiSettings(options?: RequestOptions): Promise<AiSettings> {
+  return requestJson('/api/ai/settings', { signal: options?.signal }, 'AI settings fetch failed')
+}
+
+export async function updateAiSettings(
+  provider: string,
+  apiKey?: string | null,
+): Promise<AiSettings> {
+  return requestJson(
+    '/api/ai/settings',
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, apiKey }),
+    },
+    'AI settings update failed',
+  )
+}
+
+export async function requestBlockerRecommendations(payload: {
+  task: string
+  deadline: string
+  priority: string
+  blocker: string
+  currentSolution: string
+}): Promise<BlockerRecommendationResponse> {
+  return requestJson(
+    '/api/ai/blocker-recommendations',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+    'AI recommendations failed',
+  )
+}
+
 export async function fetchThreadsPage(
   page: number,
   size: number = THREAD_PAGE_SIZE,
@@ -325,6 +393,53 @@ export async function fetchThread(
     { signal: options?.signal },
     'Thread fetch failed',
   )
+}
+
+export async function fetchOldestTodoThread(
+  options?: RequestOptions,
+): Promise<ThreadDetail | null> {
+  const data = await requestJson<ThreadDetail | undefined>(
+    '/api/threads/todo/oldest',
+    { signal: options?.signal },
+    'Todo thread fetch failed',
+  )
+  return data ?? null
+}
+
+export async function fetchTodos(options?: RequestOptions): Promise<TodoItem[]> {
+  return requestJson('/api/todos', { signal: options?.signal }, 'Todos fetch failed')
+}
+
+export async function createTodo(payload: {
+  task: string
+  deadline: string
+  priority: TodoPriority
+  blocker?: string
+  solution?: string
+}): Promise<TodoItem> {
+  return requestJson('/api/todos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, 'Todo create failed')
+}
+
+export async function updateTodo(
+  id: string,
+  payload: Partial<{
+    task: string
+    deadline: string
+    priority: TodoPriority
+    blocker: string
+    solution: string
+    done: boolean
+  }>,
+): Promise<TodoItem> {
+  return requestJson(`/api/todos/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, 'Todo update failed')
 }
 
 export async function addEntry(
@@ -394,11 +509,12 @@ export async function updateThread(
   id: string,
   body: string | null,
   categoryNames: string[],
+  isMarkdown?: boolean | null,
 ): Promise<ThreadSummary> {
   return requestJson(`/api/threads/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body, categoryNames }),
+    body: JSON.stringify({ body, categoryNames, isMarkdown }),
   }, 'Thread update failed')
 }
 
@@ -408,11 +524,15 @@ export async function hideThread(id: string): Promise<void> {
   }, 'Thread hide failed')
 }
 
-export async function updateEntry(id: string, body: string): Promise<EntryDetail> {
+export async function updateEntry(
+  id: string,
+  body: string,
+  isMarkdown?: boolean | null,
+): Promise<EntryDetail> {
   return requestJson(`/api/entries/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify({ body, isMarkdown }),
   }, 'Entry update failed')
 }
 
@@ -449,6 +569,12 @@ export async function restoreEntry(id: string): Promise<EntryDetail> {
   return requestJson(`/api/entries/${id}/restore`, {
     method: 'PATCH',
   }, 'Entry restore failed')
+}
+
+export async function purgeEntry(id: string): Promise<void> {
+  return requestEmpty(`/api/entries/${id}/purge`, {
+    method: 'DELETE',
+  }, 'Entry purge failed')
 }
 
 export async function fetchHiddenEntriesPage(
@@ -509,6 +635,12 @@ export async function restoreThread(id: string): Promise<ThreadSummary> {
   return requestJson(`/api/threads/${id}/restore`, {
     method: 'POST',
   }, 'Thread restore failed')
+}
+
+export async function purgeThread(id: string): Promise<void> {
+  return requestEmpty(`/api/threads/${id}/purge`, {
+    method: 'DELETE',
+  }, 'Thread purge failed')
 }
 
 export async function pinThread(id: string): Promise<ThreadSummary> {

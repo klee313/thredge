@@ -1349,6 +1349,9 @@
           },
           "pinned": {
             "type": "boolean"
+          },
+          "isMarkdown": {
+            "type": "boolean"
           }
         }
       },
@@ -1375,6 +1378,9 @@
           },
           "body": {
             "type": "string"
+          },
+          "isMarkdown": {
+            "type": "boolean"
           },
           "parentEntryId": {
             "type": "string"
@@ -1579,6 +1585,9 @@
           "pinned": {
             "type": "boolean"
           },
+          "isMarkdown": {
+            "type": "boolean"
+          },
           "entries": {
             "type": "array",
             "items": {
@@ -1641,6 +1650,9 @@
           "entryCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "isMarkdown": {
+            "type": "boolean"
           }
         }
       },

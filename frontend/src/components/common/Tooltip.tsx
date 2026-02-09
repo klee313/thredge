@@ -1,4 +1,10 @@
-import { cloneElement, isValidElement, useId, type ReactNode } from 'react'
+import {
+  cloneElement,
+  isValidElement,
+  useId,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 
 type TooltipProps = {
   content: string
@@ -8,19 +14,23 @@ type TooltipProps = {
 
 export function Tooltip({ content, children, className = '' }: TooltipProps) {
   const tooltipId = useId()
-  const isFocusableChild =
-    isValidElement(children) &&
-    typeof children.type === 'string' &&
-    (['button', 'a', 'input', 'textarea', 'select'].includes(children.type) ||
-      children.props.tabIndex >= 0 ||
-      Boolean(children.props.href))
-  const renderedChild = isFocusableChild
-    ? cloneElement(children, {
-        'aria-describedby': children.props['aria-describedby']
-          ? `${children.props['aria-describedby']} ${tooltipId}`
-          : tooltipId,
-      })
-    : children
+  const element = isValidElement(children) ? (children as ReactElement<any>) : null
+  let isFocusableChild = false
+  if (element && typeof element.type === 'string') {
+    const props = element.props ?? {}
+    isFocusableChild =
+      ['button', 'a', 'input', 'textarea', 'select'].includes(element.type) ||
+      props.tabIndex >= 0 ||
+      Boolean(props.href)
+  }
+  let renderedChild: ReactNode = children
+  if (element && isFocusableChild) {
+    renderedChild = cloneElement(element, {
+      'aria-describedby': element.props?.['aria-describedby']
+        ? `${element.props['aria-describedby']} ${tooltipId}`
+        : tooltipId,
+    })
+  }
   return (
     <span
       className={`group relative inline-block ${className}`}

@@ -57,6 +57,65 @@ const shouldAllowTrustedHtml = () => {
   return raw === '1' || raw.toLowerCase() === 'true'
 }
 
+const highlightHtmlString = (html: string, query: string): string => {
+  if (!query) {
+    return html
+  }
+  const normalizedQuery = query.toLowerCase()
+  if (!normalizedQuery) {
+    return html
+  }
+  if (typeof DOMParser === 'undefined') {
+    return html
+  }
+
+  const parser = new DOMParser()
+  const document = parser.parseFromString(`<div>${html}</div>`, 'text/html')
+  const container = document.body.firstElementChild
+  if (!container) {
+    return html
+  }
+
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+  const textNodes: Text[] = []
+  while (walker.nextNode()) {
+    textNodes.push(walker.currentNode as Text)
+  }
+
+  textNodes.forEach((node) => {
+    const text = node.nodeValue ?? ''
+    const normalizedText = text.toLowerCase()
+    let matchIndex = normalizedText.indexOf(normalizedQuery)
+    if (matchIndex === -1) {
+      return
+    }
+
+    const fragment = document.createDocumentFragment()
+    let startIndex = 0
+
+    while (matchIndex !== -1) {
+      if (matchIndex > startIndex) {
+        fragment.append(text.slice(startIndex, matchIndex))
+      }
+      const matchText = text.slice(matchIndex, matchIndex + normalizedQuery.length)
+      const mark = document.createElement('mark')
+      mark.className = 'rounded bg-yellow-200 px-0.5'
+      mark.textContent = matchText
+      fragment.append(mark)
+      startIndex = matchIndex + normalizedQuery.length
+      matchIndex = normalizedText.indexOf(normalizedQuery, startIndex)
+    }
+
+    if (startIndex < text.length) {
+      fragment.append(text.slice(startIndex))
+    }
+
+    node.parentNode?.replaceChild(fragment, node)
+  })
+
+  return container.innerHTML
+}
+
 export const highlightMatches = (
   text: string,
   query: string,
@@ -88,7 +147,8 @@ export const highlightMatches = (
     // changes, you must introduce server-side sanitization + stored-content migration first,
     // then update the client to render sanitized markup. Until then, keep this as-is.
     // SECURITY: Keep this aligned with the server-side trust policy; do not loosen without review.
-    return <span dangerouslySetInnerHTML={{ __html: linkifiedText }} />
+    const highlightedHtml = highlightHtmlString(linkifiedText, query)
+    return <span dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
   }
   if (hasHtmlTags && !allowHtml) {
     if (import.meta.env?.DEV) {

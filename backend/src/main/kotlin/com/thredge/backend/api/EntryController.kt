@@ -107,4 +107,14 @@ class EntryController(
         val ownerUsername = authSupport.requireUsername(authentication)
         return entryService.restoreEntry(ownerUsername, id)
     }
+
+    @DeleteMapping("/{id}/purge")
+    fun purgeEntry(
+            @PathVariable id: String,
+            authentication: Authentication?,
+    ): Map<String, String> {
+        val ownerUsername = authSupport.requireUsername(authentication)
+        entryService.purgeEntry(ownerUsername, id)
+        return mapOf("status" to "ok")
+    }
 }

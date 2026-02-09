@@ -477,6 +477,7 @@ export interface components {
             lastActivityAt?: string;
             categories?: components["schemas"]["CategorySummary"][];
             pinned?: boolean;
+            isMarkdown?: boolean;
         };
         EntryRequest: {
             body: string;
@@ -485,6 +486,7 @@ export interface components {
         EntryDetail: {
             id?: string;
             body?: string;
+            isMarkdown?: boolean;
             parentEntryId?: string;
             /** Format: int64 */
             orderIndex?: number;
@@ -546,6 +548,7 @@ export interface components {
             lastActivityAt?: string;
             categories?: components["schemas"]["CategorySummary"][];
             pinned?: boolean;
+            isMarkdown?: boolean;
             entries?: components["schemas"]["EntryDetail"][];
         };
         PageResponseThreadFeedItem: {
@@ -568,6 +571,7 @@ export interface components {
             pinned?: boolean;
             /** Format: int32 */
             entryCount?: number;
+            isMarkdown?: boolean;
         };
         PageResponseEntryDetail: {
             items?: components["schemas"]["EntryDetail"][];

@@ -73,10 +73,13 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
     includeSearch: shouldInvalidate('search'),
   }
 
-  const applyThreadUpdate = async (threadId: string, body: string) => {
-    updateThreadInFeed(queryClient, threadId, { body }, feedUpdateOptions)
+  const applyThreadUpdate = async (
+    threadId: string,
+    updates: { body: string; isMarkdown?: boolean },
+  ) => {
+    updateThreadInFeed(queryClient, threadId, updates, feedUpdateOptions)
     queryClient.setQueryData(queryKeys.thread.detail(threadId), (old: ThreadDetail | undefined) =>
-      old ? { ...old, body } : old,
+      old ? { ...old, ...updates } : old,
     )
     options.onThreadUpdated?.(threadId)
     clearThreadError()
@@ -119,14 +122,19 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
       threadId,
       body,
       categoryNames,
+      isMarkdown,
     }: {
       threadId: string
       body: string
       categoryNames: string[]
-    }) => updateThread(threadId, body, categoryNames),
+      isMarkdown?: boolean
+    }) => updateThread(threadId, body, categoryNames, isMarkdown),
     meta: { suppressGlobalError: true },
     onSuccess: async (_, variables) => {
-      await applyThreadUpdate(variables.threadId, variables.body)
+      await applyThreadUpdate(variables.threadId, {
+        body: variables.body,
+        isMarkdown: variables.isMarkdown,
+      })
     },
     onError: (error) => logThreadError('updateThread', error),
   })
@@ -136,14 +144,19 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
       threadId,
       body,
       categoryNames,
+      isMarkdown,
     }: {
       threadId: string
       body: string
       categoryNames: string[]
-    }) => updateThread(threadId, body, categoryNames),
+      isMarkdown?: boolean
+    }) => updateThread(threadId, body, categoryNames, isMarkdown),
     meta: { suppressGlobalError: true },
     onSuccess: async (_, variables) => {
-      await applyThreadUpdate(variables.threadId, variables.body)
+      await applyThreadUpdate(variables.threadId, {
+        body: variables.body,
+        isMarkdown: variables.isMarkdown,
+      })
     },
     onError: (error) => logThreadError('toggleThreadMute', error),
   })
@@ -193,18 +206,34 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
 
   const applyEntryUpdate = (updated: EntryDetail, threadId?: string | null) => {
     const resolvedThreadId = threadId ?? updated.threadId ?? undefined
-    updateEntryInFeed(queryClient, updated.id, updated.body, feedUpdateOptions)
+    updateEntryInFeed(queryClient, updated.id, updated.body, updated.isMarkdown, feedUpdateOptions)
     if (resolvedThreadId) {
-      updateEntryInEntryList(queryClient, resolvedThreadId, updated.id, updated.body)
-      updateEntryInThreadDetail(queryClient, resolvedThreadId, updated.id, updated.body)
+      updateEntryInEntryList(
+        queryClient,
+        resolvedThreadId,
+        updated.id,
+        updated.body,
+        updated.isMarkdown,
+      )
+      updateEntryInThreadDetail(
+        queryClient,
+        resolvedThreadId,
+        updated.id,
+        updated.body,
+        updated.isMarkdown,
+      )
     }
     options.onEntryUpdated?.(updated.id, updated.body, updated.threadId)
     return resolvedThreadId
   }
 
   const updateEntryMutation = useMutation({
-    mutationFn: ({ entryId, body }: { entryId: string; body: string; threadId?: string }) =>
-      updateEntry(entryId, body),
+    mutationFn: ({
+      entryId,
+      body,
+      isMarkdown,
+    }: { entryId: string; body: string; isMarkdown?: boolean; threadId?: string }) =>
+      updateEntry(entryId, body, isMarkdown),
     meta: { suppressGlobalError: true },
     onSuccess: async (updated, variables) => {
       const resolvedThreadId = applyEntryUpdate(updated, variables.threadId)
@@ -215,8 +244,12 @@ export const useThreadActions = (options: ThreadActionsOptions = {}) => {
   })
 
   const toggleEntryMuteMutation = useMutation({
-    mutationFn: ({ entryId, body }: { entryId: string; body: string; threadId?: string }) =>
-      updateEntry(entryId, body),
+    mutationFn: ({
+      entryId,
+      body,
+      isMarkdown,
+    }: { entryId: string; body: string; isMarkdown?: boolean; threadId?: string }) =>
+      updateEntry(entryId, body, isMarkdown),
     meta: { suppressGlobalError: true },
     onSuccess: async (updated, variables) => {
       const resolvedThreadId = applyEntryUpdate(updated, variables.threadId)

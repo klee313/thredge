@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useOutletContext } from 'react-router-dom'
@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { supportedLanguages } from '../lib/languages'
 import { useSettingsStore } from '../store/settingsStore'
 import i18n from '../i18n'
-import { changePassword, updateDisplayName } from '../lib/api'
+import { changePassword, fetchAiSettings, updateAiSettings, updateDisplayName } from '../lib/api'
 import { uiTokens } from '../lib/uiTokens'
 import {
   CUSTOM_THEME_ID,
@@ -28,6 +28,7 @@ const schema = z.object({
   themePreset: z.string(),
   themeCustomColor: z.string(),
   pinchZoomEnabled: z.boolean(),
+  showTodoPanel: z.boolean(),
   profileImageUrl: z.string().nullable(),
 })
 
@@ -69,7 +70,33 @@ export function SettingsPage() {
       themePreset: settings.themePreset,
       themeCustomColor: settings.themeCustomColor,
       pinchZoomEnabled: settings.pinchZoomEnabled,
+      showTodoPanel: settings.showTodoPanel,
       profileImageUrl: settings.profileImageUrl,
+    },
+  })
+  const aiProviders = useMemo(() => [{ id: 'openai', label: 'OpenAI' }], [])
+  const [aiProvider, setAiProvider] = useState('openai')
+  const [aiApiKey, setAiApiKey] = useState('')
+  const [aiSavedAt, setAiSavedAt] = useState<number | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const aiSettingsQuery = useQuery({
+    queryKey: queryKeys.ai.settings,
+    queryFn: ({ signal }) => fetchAiSettings({ signal }),
+    enabled: Boolean(authQuery.data),
+    meta: { suppressGlobalError: true },
+  })
+  const aiSettingsMutation = useMutation({
+    mutationFn: () => updateAiSettings(aiProvider, aiApiKey.trim()),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(queryKeys.ai.settings, data)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.ai.settings })
+      setAiSavedAt((prev) => (prev ?? 0) + 1)
+      setAiError(null)
+      setAiApiKey('')
+    },
+    onError: (error: Error) => {
+      setAiError(error.message)
+      setGlobalError(error.message, { source: 'auth', devMessage: error.stack })
     },
   })
 
@@ -79,9 +106,17 @@ export function SettingsPage() {
       themePreset: settings.themePreset,
       themeCustomColor: settings.themeCustomColor,
       pinchZoomEnabled: settings.pinchZoomEnabled,
+      showTodoPanel: settings.showTodoPanel,
       profileImageUrl: settings.profileImageUrl,
     })
   }, [reset, settings])
+
+  useEffect(() => {
+    if (!aiSettingsQuery.data?.provider) {
+      return
+    }
+    setAiProvider(aiSettingsQuery.data.provider)
+  }, [aiSettingsQuery.data?.provider])
 
   useEffect(() => {
     if (!authQuery.data) {
@@ -95,6 +130,7 @@ export function SettingsPage() {
   const selectedThemePreset = useWatch({ control, name: 'themePreset' })
   const selectedThemeCustomColor = useWatch({ control, name: 'themeCustomColor' })
   const selectedPinchZoomEnabled = useWatch({ control, name: 'pinchZoomEnabled' })
+  const selectedShowTodoPanel = useWatch({ control, name: 'showTodoPanel' })
   const selectedProfileImageUrl = useWatch({ control, name: 'profileImageUrl' })
   useEffect(() => {
     void i18n.changeLanguage(selectedUiLanguage)
@@ -111,6 +147,14 @@ export function SettingsPage() {
     const timeoutId = window.setTimeout(() => setUiSavedAt(null), 2000)
     return () => window.clearTimeout(timeoutId)
   }, [uiSavedAt])
+
+  useEffect(() => {
+    if (!aiSavedAt) {
+      return
+    }
+    const timeoutId = window.setTimeout(() => setAiSavedAt(null), 2000)
+    return () => window.clearTimeout(timeoutId)
+  }, [aiSavedAt])
 
   useEffect(() => {
     if (!profileSavedAt) {
@@ -154,6 +198,12 @@ export function SettingsPage() {
   }, [displayName])
 
   useEffect(() => {
+    if (aiError) {
+      setAiError(null)
+    }
+  }, [aiApiKey, aiProvider])
+
+  useEffect(() => {
     if (!isProfileEditing) {
       return
     }
@@ -169,7 +219,13 @@ export function SettingsPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUiSavedAt(null)
     }
-  }, [selectedUiLanguage, selectedThemePreset, selectedThemeCustomColor, selectedPinchZoomEnabled])
+  }, [
+    selectedUiLanguage,
+    selectedThemePreset,
+    selectedThemeCustomColor,
+    selectedPinchZoomEnabled,
+    selectedShowTodoPanel,
+  ])
 
   useEffect(() => {
     if (profileSavedAtRef.current) {
@@ -202,6 +258,7 @@ export function SettingsPage() {
       themePreset: values.themePreset,
       themeCustomColor: normalizedCustomColor,
       pinchZoomEnabled: values.pinchZoomEnabled,
+      showTodoPanel: values.showTodoPanel,
     })
     setUiSavedAt((prev) => (prev ?? 0) + 1)
   }
@@ -309,6 +366,19 @@ export function SettingsPage() {
     displayNameMutation.mutate(trimmedName)
   }
 
+  const handleAiSettingsSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!aiProvider) {
+      setAiError(t('settings.aiProviderRequired'))
+      return
+    }
+    if (!aiApiKey.trim() && !aiSettingsQuery.data?.hasApiKey) {
+      setAiError(t('settings.aiKeyRequired'))
+      return
+    }
+    aiSettingsMutation.mutate()
+  }
+
   return (
     <div className="space-y-2 sm:space-y-4">
       <h1 className="text-xl font-semibold">{t('settings.title')}</h1>
@@ -361,7 +431,8 @@ export function SettingsPage() {
                           handleDisplayNameSubmit()
                         }
                         if (event.key === 'Escape') {
-                          const fallbackName = authQuery.data.name || authQuery.data.username
+                          const fallbackName =
+                            authQuery.data?.name || authQuery.data?.username || ''
                           setDisplayName(fallbackName)
                           setDisplayNameError(null)
                           setIsProfileEditing(false)
@@ -376,11 +447,11 @@ export function SettingsPage() {
                       className="text-sm font-semibold"
                       onClick={() => setIsProfileEditing(true)}
                     >
-                      {displayName || authQuery.data.username}
+                      {displayName || authQuery.data?.username || ''}
                     </button>
                   )}
                   <div className="text-xs text-[var(--theme-muted)]">
-                    @{authQuery.data.username}
+                    @{authQuery.data?.username ?? ''}
                   </div>
                 </div>
               </div>
@@ -552,6 +623,41 @@ export function SettingsPage() {
           </div>
         </div>
 
+        <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-base)] p-3 sm:p-4">
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">{t('settings.todoPanelTitle')}</div>
+            <div className="text-xs text-[var(--theme-muted)]">
+              {t('settings.todoPanelDescription')}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold text-[var(--theme-muted)]">
+                {selectedShowTodoPanel
+                  ? t('settings.todoPanelShown')
+                  : t('settings.todoPanelHidden')}
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={selectedShowTodoPanel}
+                onClick={() =>
+                  setValue('showTodoPanel', !selectedShowTodoPanel, { shouldDirty: true })
+                }
+                className={`relative h-6 w-11 rounded-full border transition ${
+                  selectedShowTodoPanel
+                    ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]'
+                    : 'border-[var(--theme-border)] bg-[var(--theme-surface)]'
+                }`}
+              >
+                <span
+                  className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-[var(--theme-on-primary)] transition ${
+                    selectedShowTodoPanel ? 'left-6' : 'left-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
           <button
             type="submit"
@@ -575,6 +681,68 @@ export function SettingsPage() {
 
       {authQuery.data && (
         <>
+          <form
+            className={`space-y-3 ${uiTokens.card.surface}`}
+            onSubmit={handleAiSettingsSubmit}
+          >
+            <div className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-base)] p-3 sm:p-4">
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">{t('settings.aiTitle')}</div>
+                <div className="text-xs text-[var(--theme-muted)]">
+                  {t('settings.aiDescription')}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1 text-xs text-[var(--theme-muted)]">
+                    <span>{t('settings.aiProviderLabel')}</span>
+                    <select
+                      className={`${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
+                      value={aiProvider}
+                      onChange={(event) => setAiProvider(event.target.value)}
+                    >
+                      {aiProviders.map((provider) => (
+                        <option key={provider.id} value={provider.id}>
+                          {provider.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-xs text-[var(--theme-muted)]">
+                    <span>{t('settings.aiKeyLabel')}</span>
+                    <input
+                      type="password"
+                      className={`${uiTokens.input.base} ${uiTokens.input.paddingMd}`}
+                      value={aiApiKey}
+                      placeholder={
+                        aiSettingsQuery.data?.hasApiKey
+                          ? t('settings.aiKeySavedPlaceholder')
+                          : t('settings.aiKeyPlaceholder')
+                      }
+                      onChange={(event) => setAiApiKey(event.target.value)}
+                    />
+                  </label>
+                </div>
+                {aiError && (
+                  <div className="text-xs font-semibold text-rose-600">{aiError}</div>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className={uiTokens.button.primarySm}
+                    disabled={aiSettingsMutation.isPending}
+                  >
+                    {aiSettingsMutation.isPending ? t('settings.saving') : t('settings.save')}
+                  </button>
+                  <div className="min-h-[1rem]" role="status" aria-live="polite">
+                    {aiSavedAt && (
+                      <span className="text-xs font-semibold text-emerald-600">
+                        {t('settings.saved')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
           <SettingsPasswordSection
             onSubmit={(event) => {
               void handleSubmitPassword(onPasswordSubmit)(event)

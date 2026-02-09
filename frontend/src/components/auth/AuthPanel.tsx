@@ -3,7 +3,8 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AuthUser } from '../../lib/api'
-import { login, signup } from '../../lib/api'
+import { googleOAuthStartUrl, login, signup } from '../../lib/api'
+import { GOOGLE_OAUTH_ENABLED } from '../../lib/env'
 import { queryKeys } from '../../lib/queryKeys'
 import { uiTokens } from '../../lib/uiTokens'
 import { ErrorNotice } from '../common/ErrorNotice'
@@ -11,6 +12,29 @@ import { ErrorNotice } from '../common/ErrorNotice'
 type AuthPanelProps = {
   authQuery: UseQueryResult<AuthUser | null, Error>
   onAuthSuccess?: () => void
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 18 18">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.56 2.68-3.86 2.68-6.62z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.82.86-3.04.86-2.34 0-4.33-1.58-5.04-3.72H.96v2.34A9 9 0 0 0 9 18z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.96 10.7A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l3-2.34z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.5.46 3.44 1.34l2.58-2.58A8.94 8.94 0 0 0 9 0 9 9 0 0 0 .96 4.96l3 2.34C4.67 5.16 6.66 3.58 9 3.58z"
+      />
+    </svg>
+  )
 }
 
 export function AuthPanel({ authQuery, onAuthSuccess }: AuthPanelProps) {
@@ -39,6 +63,10 @@ export function AuthPanel({ authQuery, onAuthSuccess }: AuthPanelProps) {
     onSuccess: handleAuthSuccess,
   })
 
+  const startGoogleLogin = () => {
+    window.location.href = googleOAuthStartUrl()
+  }
+
   return (
     <div className="space-y-2 sm:space-y-3">
       {authQuery.isLoading && (
@@ -58,8 +86,25 @@ export function AuthPanel({ authQuery, onAuthSuccess }: AuthPanelProps) {
           <div className="text-sm font-semibold">
             {mode === 'login' ? t('home.loginTitle') : t('home.signupTitle')}
           </div>
+          {GOOGLE_OAUTH_ENABLED && (
+            <>
+              <button
+                className={`mt-2 flex w-full items-center justify-center gap-2 ${uiTokens.button.secondaryMd} sm:mt-3`}
+                type="button"
+                onClick={startGoogleLogin}
+              >
+                <GoogleIcon />
+                {t('home.googleLoginButton')}
+              </button>
+              <div className="mt-3 flex items-center gap-2 text-xs text-[var(--theme-muted)]">
+                <div className="h-px flex-1 bg-[var(--theme-border)]" />
+                <span>{t('home.authOrDivider')}</span>
+                <div className="h-px flex-1 bg-[var(--theme-border)]" />
+              </div>
+            </>
+          )}
           <form
-            className="mt-2 space-y-2 sm:mt-3 sm:space-y-3"
+            className={`space-y-2 sm:space-y-3 ${GOOGLE_OAUTH_ENABLED ? 'mt-3' : 'mt-2 sm:mt-3'}`}
             onSubmit={(event) => {
               event.preventDefault()
               if (mode === 'login') {

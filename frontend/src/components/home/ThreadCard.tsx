@@ -70,6 +70,7 @@ export function ThreadCard({ data, ui, actions }: ThreadCardProps) {
       isMuted={display.isMuted}
       bodySpacingClass={display.bodySpacingClass}
       hasHtmlLineBreaks={display.hasHtmlLineBreaks}
+      isMarkdown={thread.isMarkdown}
       orderedEntries={orderedEntries}
       entryDepth={entryDepth}
       entriesIsError={entriesQuery.isError}
